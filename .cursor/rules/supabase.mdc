@@ -1,0 +1,467 @@
+---
+description: Supabase database schema, Edge Functions, and integration patterns for DinnerHelp
+globs:
+  - "**/supabase/**"
+  - "**/*.sql"
+  - "**/migrations/**"
+  - "**/*repository*.dart"
+  - "**/*datasource*.dart"
+  - "**/data/models/**"
+  - "**/lib/core/network/**"
+alwaysApply: false
+---
+
+# DinnerHelp Supabase Integration
+
+You are working with a Supabase backend for the DinnerHelp platform. Follow these schemas and patterns when implementing data layer code.
+
+## Supabase Database Structure
+
+### Core Tables (Public Schema)
+
+#### Table: profiles
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| id | uuid | NO | - | Primary key, references auth.users |
+| first_name | text | YES | - | User's first name |
+| last_name | text | YES | - | User's last name |
+| email | text | YES | - | User's email address |
+| is_chef | boolean | YES | false | Whether user is a chef |
+| is_admin | boolean | YES | false | Whether user has admin privileges |
+| avatar_url | text | YES | - | Profile image URL |
+| created_at | timestamptz | YES | timezone('utc', now()) | Creation timestamp |
+| updated_at | timestamptz | YES | timezone('utc', now()) | Last update timestamp |
+
+**RLS Policies:**
+- SELECT: Users can view all profiles (public read)
+- UPDATE: Users can only update their own profile
+- INSERT: Users can insert their own profile
+
+#### Table: chefs
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| id | uuid | NO | - | Primary key, references profiles.id |
+| years_experience | integer | NO | - | Years of cooking experience |
+| certified_chef | boolean | YES | false | Professional certification status |
+| price_per_hour | integer | NO | - | Hourly rate in DKK |
+| bio | text | YES | - | Chef biography |
+| profile_image_url | text | YES | - | Chef profile image |
+| profile_background_url | text | YES | - | Background image URL |
+| is_active | boolean | YES | true | Whether chef is active |
+| title | text | YES | - | Professional title |
+| languages | text[] | YES | - | Languages spoken |
+| cuisines | text[] | YES | - | Cuisine specialties |
+| dietary_specialties | text[] | YES | - | Dietary specialties (vegan, gluten-free, etc.) |
+| occasion_specialties | text[] | YES | - | Event specialties |
+| gallery_images | jsonb | YES | - | Gallery image URLs and metadata |
+| bank_holiday_extra_charge | integer | YES | 0 | Extra charge % for bank holidays (0-100) |
+| new_years_eve_extra_charge | integer | YES | 0 | Extra charge % for New Year's Eve (0-100) |
+| postal_code | text | YES | - | Service area postal code |
+| phone | text | YES | - | Contact phone number |
+| facebook_profile | text | YES | - | Facebook profile URL |
+| linkedin_profile | text | YES | - | LinkedIn profile URL |
+| instagram_profile | text | YES | - | Instagram profile URL |
+| education_and_qualifications | text | YES | - | Educational background |
+| has_clean_criminal_record | boolean | YES | - | Criminal record status |
+| has_hygiene_certificate | boolean | YES | - | Food hygiene certification |
+| hourly_rate | integer | YES | - | Hourly rate (duplicate of price_per_hour) |
+| about | text | YES | - | About section |
+| other_info | text | YES | - | Additional information |
+| consent_given | boolean | YES | - | GDPR consent status |
+| open_question | text | YES | - | Open question response |
+| approved | boolean | YES | false | Admin approval status |
+| created_at | timestamptz | YES | now() | Creation timestamp |
+| updated_at | timestamptz | YES | now() | Last update timestamp |
+
+**RLS Policies:**
+- SELECT: Public read for approved chefs
+- UPDATE: Chefs can update their own profile
+- INSERT: Authenticated users can create chef profile
+- DELETE: Only admins can delete
+
+#### Table: bookings
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| id | uuid | NO | uuid_generate_v4() | Primary key |
+| user_id | uuid | YES | - | References profiles.id |
+| chef_id | uuid | YES | - | References chefs.id |
+| date | date | NO | - | Booking date |
+| start_time | time | NO | - | Start time |
+| end_time | time | NO | - | End time |
+| status | text | NO | - | Booking status (pending, accepted, confirmed, etc.) |
+| number_of_guests | integer | NO | - | Number of guests |
+| total_amount | integer | NO | - | Total amount in DKK |
+| payment_status | text | YES | 'pending' | Payment status |
+| tip_amount | numeric | YES | 0 | Tip amount |
+| platform_fee | numeric | YES | 0 | Platform fee |
+| stripe_payment_intent_id | text | YES | - | Stripe payment ID |
+| chef_review | text | YES | - | Review by chef |
+| user_review | text | YES | - | Review by user |
+| created_at | timestamptz | NO | timezone('utc', now()) | Creation timestamp |
+| updated_at | timestamptz | NO | timezone('utc', now()) | Last update timestamp |
+
+**Constraints:**
+- status CHECK: Must be one of ['pending', 'accepted', 'confirmed', 'in_progress', 'completed', 'cancelled', 'disputed', 'refunded']
+- payment_status CHECK: Must be one of ['pending', 'succeeded', 'failed', 'refunded', 'disputed']
+
+**RLS Policies:**
+- SELECT: Users can view own bookings, Chefs can view assigned bookings
+- INSERT: Users can create bookings
+- UPDATE: Users and chefs can update their related bookings
+
+#### Table: chat_messages
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| id | uuid | NO | uuid_generate_v4() | Primary key |
+| booking_id | uuid | YES | - | References bookings.id |
+| sender_id | uuid | YES | - | References profiles.id |
+| receiver_id | uuid | YES | - | References profiles.id |
+| content | text | NO | - | Message content |
+| created_at | timestamptz | NO | timezone('utc', now()) | Creation timestamp |
+
+**RLS Policies:**
+- SELECT: Users can view messages where they are sender or receiver
+- INSERT: Users can send messages as themselves
+
+#### Table: chef_applications
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| id | uuid | NO | uuid_generate_v4() | Primary key |
+| user_id | uuid | YES | - | References auth.users.id |
+| email | text | NO | - | Applicant email |
+| first_name | text | NO | - | First name |
+| last_name | text | NO | - | Last name |
+| phone | text | YES | - | Phone number |
+| years_experience | integer | YES | - | Years of experience |
+| cuisines | text[] | YES | - | Cuisine specialties |
+| postal_code | text | YES | - | Location |
+| hourly_rate | integer | YES | - | Desired hourly rate |
+| about | text | YES | - | About the chef |
+| profile_image_url | text | YES | - | Profile image |
+| approved | boolean | YES | false | Approval status |
+| approved_at | timestamptz | YES | - | Approval timestamp |
+| created_at | timestamptz | YES | now() | Application timestamp |
+| updated_at | timestamptz | YES | now() | Last update |
+| processed | boolean | YES | false | Processing status |
+| processed_at | timestamptz | YES | - | Processing timestamp |
+
+#### Table: chef_availability
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| id | uuid | NO | uuid_generate_v4() | Primary key |
+| chef_id | uuid | YES | - | References chefs.id |
+| date | date | NO | - | Available date |
+| time_start | time | NO | - | Start time |
+| time_end | time | NO | - | End time |
+| is_full_day | boolean | YES | false | Full day availability |
+| created_at | timestamptz | YES | now() | Creation timestamp |
+
+#### Table: chef_ratings
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| id | uuid | NO | uuid_generate_v4() | Primary key |
+| chef_id | uuid | YES | - | References chefs.id |
+| user_id | uuid | YES | - | References profiles.id |
+| rating | integer | YES | - | Rating 1-5 |
+| review | text | YES | - | Review text |
+| status | varchar | YES | 'published' | Review status |
+| created_at | timestamptz | YES | now() | Creation timestamp |
+
+#### Table: notifications
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| id | uuid | NO | uuid_generate_v4() | Primary key |
+| user_id | uuid | YES | - | References profiles.id |
+| chef_id | uuid | YES | - | References chefs.id |
+| booking_id | uuid | YES | - | References bookings.id |
+| type | text | NO | - | Notification type |
+| content | text | NO | - | Notification content |
+| is_read | boolean | YES | false | Read status |
+| created_at | timestamptz | NO | timezone('utc', now()) | Creation timestamp |
+
+#### Table: chef_schedule_settings
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| chef_id | uuid | NO | - | Primary key, references auth.users |
+| min_hours | numeric | YES | 3 | Minimum booking hours |
+| min_notice_hours | integer | YES | 24 | Minimum notice hours |
+| created_at | timestamptz | YES | now() | Creation timestamp |
+| updated_at | timestamptz | YES | now() | Last update timestamp |
+
+#### Table: chef_working_hours
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| id | uuid | NO | gen_random_uuid() | Primary key |
+| chef_id | uuid | NO | - | References auth.users.id |
+| day_of_week | integer | NO | - | Day of week (0-6) |
+| start_time | time | NO | - | Start time |
+| end_time | time | NO | - | End time |
+| is_available | boolean | YES | true | Availability status |
+| created_at | timestamptz | YES | now() | Creation timestamp |
+| updated_at | timestamptz | YES | now() | Last update timestamp |
+
+#### Table: chef_service_areas
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| id | uuid | NO | gen_random_uuid() | Primary key |
+| chef_id | uuid | NO | - | References chefs.id |
+| postal_code | text | NO | - | Service area postal code |
+| city_name | text | YES | - | City name |
+| created_at | timestamptz | YES | now() | Creation timestamp |
+
+#### Table: chef_time_off
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| id | uuid | NO | gen_random_uuid() | Primary key |
+| chef_id | uuid | NO | - | References chefs.id |
+| start_date | date | NO | - | Time off start date |
+| end_date | date | NO | - | Time off end date |
+| reason | text | YES | - | Reason for time off |
+| created_at | timestamptz | YES | now() | Creation timestamp |
+
+#### Table: faqs
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| id | uuid | NO | gen_random_uuid() | Primary key |
+| question | text | NO | - | FAQ question |
+| answer | text | NO | - | FAQ answer |
+| category | text | YES | 'general' | FAQ category |
+| sort_order | integer | YES | 0 | Display order |
+| is_active | boolean | YES | true | Active status |
+| created_at | timestamptz | YES | now() | Creation timestamp |
+| updated_at | timestamptz | YES | now() | Last update timestamp |
+
+### Storage Buckets
+
+| Bucket Name | Public | File Size Limit | Allowed MIME Types | Description |
+|-------------|--------|-----------------|-------------------|-------------|
+| chef-images | true | 50MB | All | Chef profile and gallery images |
+| marketing | true | - | All | Marketing materials |
+| menu-images | true | 50MB | All | Menu and dish images |
+| message-attachments | true | 10MB | image/*, application/pdf, MS Office, text/plain | Chat attachments |
+| user-images | true | - | All | User profile images |
+
+### Database Functions
+
+| Function Name | Type | Description |
+|--------------|------|-------------|
+| create_chef_record | FUNCTION | Creates chef record when user signs up |
+| create_profile_for_user | FUNCTION | Creates profile record for new users |
+| ensure_profile_and_chef_records | FUNCTION | Ensures profile and chef records exist |
+| get_chef_schedule_settings | FUNCTION | Retrieves chef schedule settings |
+| update_chef_schedule_settings | FUNCTION | Updates chef schedule settings |
+| update_updated_at_column | FUNCTION | Trigger function to update updated_at |
+| validate_booking_request | FUNCTION | Validates booking request parameters |
+
+### Edge Functions
+
+| Function | Description | Key Features |
+|----------|-------------|--------------|
+| stripe-connect-account | Creates Stripe Connect Express accounts for chefs | - Creates Express accounts<br>- Returns onboarding URL |
+| stripe-disconnect-account | Disconnects Stripe accounts | - Deletes Connect account |
+| stripe-onboarding-link | Generates new onboarding links | - For re-onboarding |
+| stripe-account-status | Checks Connect account status | - Returns verification status |
+| create-payment-intent | Creates payment intents for bookings | - Calculates platform fees<br>- Creates Stripe payment intent |
+| handle-stripe-webhook | Processes Stripe webhooks | - Payment success/failure<br>- Refunds and disputes |
+| calculate-final-amount | Calculates final booking amount | - Handles tips<br>- Adjusts for actual hours |
+| invite-chef | Sends chef invitation emails | - Creates auth user<br>- Sends magic link |
+| sync-chef-application | Syncs approved applications to chef profiles | - Creates profile/chef records |
+| generate-recipe | Generates recipes using OpenAI | - Danish recipes<br>- Structured JSON output |
+| generate-image | Generates images using Recraft AI | - Food photography<br>- Recipe images |
+| add-chef-to-brevo | Adds chefs to email marketing list | - Brevo/SendinBlue integration |
+
+### Key RLS Policies Summary
+
+**General Patterns:**
+- Public read for most chef data (when approved)
+- Users can only modify their own data
+- Chefs have additional permissions for their business data
+- Admins have elevated permissions via is_admin flag
+- Service role bypasses RLS for system operations
+
+**Booking Flow:**
+- Users create bookings → Chefs accept → Payment processed → Completion
+- Both parties can view and communicate about bookings
+- Disputes handled through separate dispute system
+
+**Chef Onboarding:**
+1. Application submitted (chef_applications)
+2. Admin approval
+3. User account created via invite-chef function
+4. Profile synced via sync-chef-application
+5. Chef completes profile and Stripe onboarding
+
+### Database Triggers
+
+- **update_updated_at_column**: Updates the updated_at timestamp on row modifications
+- **ensure_profile_and_chef_records**: Creates profile/chef records on user creation
+- **handle_new_user**: Creates profile when auth.users entry is created
+
+### Important Relationships
+
+- profiles.id ← → auth.users.id (1:1)
+- chefs.id → profiles.id (1:1)
+- bookings.user_id → profiles.id
+- bookings.chef_id → chefs.id
+- chat_messages → bookings (via booking_id)
+- notifications → users, chefs, bookings
+
+### Environment Variables Required
+
+**Supabase:**
+- SUPABASE_URL
+- SUPABASE_ANON_KEY
+- SUPABASE_SERVICE_ROLE_KEY
+
+**Third-party Services:**
+- STRIPE_SECRET_KEY
+- STRIPE_WEBHOOK_SECRET
+- OPENAI_API_KEY
+- RECRAFT_API_TOKEN
+- VITE_BREVO_API_KEY
+
+**Application:**
+- FRONTEND_URL (for redirects)
+
+### Security Considerations
+
+1. **RLS is enabled on all tables** - Never disable without careful consideration
+2. **Service role key** should only be used in Edge Functions, never client-side
+3. **Stripe webhooks** must be verified using webhook secret
+4. **User permissions** are role-based (is_chef, is_admin flags)
+5. **File uploads** are restricted by size and MIME type per bucket
+
+## Integration Patterns
+
+When implementing Supabase integration in Flutter:
+
+### Repository Implementation Pattern
+```dart
+class BookingRepositoryImpl implements BookingRepository {
+  final SupabaseClient _supabaseClient;
+  
+  @override
+  Future<Either<Failure, Booking>> createBooking(BookingRequest request) async {
+    try {
+      // Validate booking using Edge Function
+      final validationResult = await _supabaseClient.functions.invoke(
+        'validate-booking-request',
+        body: request.toJson(),
+      );
+      
+      if (validationResult.error != null) {
+        return Left(ValidationFailure(validationResult.error!.message));
+      }
+      
+      // Create booking
+      final response = await _supabaseClient
+          .from('bookings')
+          .insert({
+            'user_id': request.userId,
+            'chef_id': request.chefId,
+            'date': request.date.toIso8601String(),
+            'start_time': request.startTime,
+            'end_time': request.endTime,
+            'number_of_guests': request.numberOfGuests,
+            'status': 'pending',
+          })
+          .select()
+          .single();
+          
+      return Right(BookingModel.fromJson(response).toDomain());
+    } on PostgrestException catch (e) {
+      return Left(ServerFailure(e.message));
+    }
+  }
+}
+
+### Real-time Subscription Pattern
+
+```dart
+StreamSubscription<List<Map<String, dynamic>>>? _bookingSubscription;
+
+void subscribeToBookingUpdates(String userId) {
+  _bookingSubscription = _supabaseClient
+      .from('bookings')
+      .stream(primaryKey: ['id'])
+      .eq('user_id', userId)
+      .listen((data) {
+        // Handle real-time updates
+      });
+}
+
+void dispose() {
+  _bookingSubscription?.cancel();
+}
+```
+
+### Edge Function Invocation
+
+```dart
+// For Stripe operations
+final result = await _supabaseClient.functions.invoke(
+  'create-payment-intent',
+  body: {'booking_id': bookingId},
+);
+
+// For AI features
+final recipeResult = await _supabaseClient.functions.invoke(
+  'generate-recipe',
+  body: {
+    'dishName': dishName,
+    'servings': servings,
+  },
+);
+```
+
+### File Upload Pattern
+
+```dart
+Future<String> uploadChefImage(File image, String chefId) async {
+  final fileName = '${chefId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+  final response = await _supabaseClient.storage
+      .from('chef-images')
+      .upload(fileName, image);
+      
+  if (response.error != null) {
+    throw StorageException(response.error!.message);
+  }
+  
+  return _supabaseClient.storage
+      .from('chef-images')
+      .getPublicUrl(fileName);
+}
+```
+
+## Benefits of Separation:
+
+1. **Targeted Application**: Supabase rules only apply when working on database-related code
+2. **Independent Updates**: Can update database schema without touching Flutter rules
+3. **Better Organization**: Clear separation of concerns
+4. **Smaller Files**: Easier to read and maintain
+5. **Team Collaboration**: Different team members can maintain different rule sets
+
+## Alternative: Single File with Sections
+
+If you prefer everything in one file, you could organize it with clear sections:
+
+```yaml
+---
+description: Complete DinnerHelp development rules - Flutter, Dart, Clean Architecture, Riverpod, and Supabase
+globs:
+  - "**/*.dart"
+  - "**/supabase/**"
+  - "**/*.sql"
+alwaysApply: false
+---
+# DinnerHelp Platform Development Rules
+
+## Section 1: Flutter & Dart Guidelines
+[Flutter content...]
+
+## Section 2: Supabase Integration
+[Supabase content...]
+
+## Section 3: Project-Specific Patterns
+[Combined patterns...]
+```

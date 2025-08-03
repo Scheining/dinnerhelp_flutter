@@ -1,0 +1,346 @@
+---
+description: Flutter & Dart development with Clean Architecture, Riverpod, and best practices
+globs:
+  - "**/*.dart"
+  - "**/pubspec.yaml"
+  - "**/pubspec.lock"
+  - "**/analysis_options.yaml"
+  - "**/lib/**"
+  - "**/test/**"
+  - "**/integration_test/**"
+  - "**/*.arb"
+  - "**/l10n.yaml"
+alwaysApply: false
+---
+
+You are an expert Flutter developer specializing in Clean Architecture with Feature-first organization, Riverpod for state management, and Supabase for backend services.
+
+## Core Principles
+
+### Clean Architecture
+- Strictly adhere to Clean Architecture layers: Presentation, Domain, and Data
+- Follow the dependency rule: dependencies always point inward
+- Domain layer contains entities, repositories (interfaces), and use cases
+- Data layer implements repositories and contains data sources and models
+- Presentation layer contains UI components, providers, and view models
+- Use proper abstractions with interfaces/abstract classes for each component
+
+### Feature-First Organization
+- Organize code by features instead of technical layers
+- Each feature is a self-contained module with its own implementation of all layers
+- Common directory structure:
+lib/
+├── core/                          # Shared/common code
+│   ├── error/                     # Error handling, failures
+│   ├── network/                   # Network utilities, interceptors
+│   ├── utils/                     # Utility functions and extensions
+│   └── widgets/                   # Reusable widgets
+├── features/                      # All app features
+│   ├── feature_name/              # Single feature
+│   │   ├── data/                  # Data layer
+│   │   │   ├── datasources/       # Remote and local data sources
+│   │   │   ├── models/            # DTOs and data models
+│   │   │   └── repositories/      # Repository implementations
+│   │   ├── domain/                # Domain layer
+│   │   │   ├── entities/          # Business objects
+│   │   │   ├── repositories/      # Repository interfaces
+│   │   │   └── usecases/          # Business logic use cases
+│   │   └── presentation/          # Presentation layer
+│   │       ├── providers/         # Riverpod providers
+│   │       ├── pages/             # Screen widgets
+│   │       └── widgets/           # Feature-specific widgets
+└── main.dart                      # Entry point
+
+## Dart/Flutter Guidelines
+
+### Basic Principles
+- Use English for all code and documentation
+- Always declare types explicitly (avoid dynamic)
+- Use const constructors for immutable widgets
+- Leverage Freezed for immutable state classes and unions
+- Use descriptive variable names with auxiliary verbs (isLoading, hasError, canDelete)
+- Keep functions small and focused (< 20 lines)
+- Prefer composition over inheritance
+
+### Nomenclature
+- Use PascalCase for classes
+- Use camelCase for variables, functions, and methods
+- Use underscores_case for file and directory names
+- Use UPPERCASE for environment variables
+- Start functions with verbs
+- Use complete words instead of abbreviations (except standard ones like API, URL)
+
+### Functions
+- Write short functions with a single purpose
+- Use early returns to avoid nesting
+- Use higher-order functions (map, filter, reduce)
+- Use default parameter values
+- Reduce parameters using object pattern (RO-RO)
+- Maintain single level of abstraction
+
+## Riverpod Implementation
+
+### Provider Guidelines
+- Use @riverpod annotation for code generation
+- Prefer AsyncNotifierProvider and NotifierProvider over StateProvider
+- Avoid StateProvider, StateNotifierProvider, and ChangeNotifierProvider
+- Create granular, focused providers for specific features
+- Use ref.invalidate() for manual provider updates
+- Implement proper cancellation of async operations
+
+### State Management Pattern
+```dart
+// Freezed state class
+@freezed
+class UserState with _$UserState {
+  const factory UserState.initial() = _Initial;
+  const factory UserState.loading() = _Loading;
+  const factory UserState.loaded(User user) = _Loaded;
+  const factory UserState.error(Failure failure) = _Error;
+}
+
+// Riverpod AsyncNotifier
+@riverpod
+class UserNotifier extends _$UserNotifier {
+  @override
+  FutureOr<UserState> build() {
+    return const UserState.initial();
+  }
+
+  Future<void> getUser(String userId) async {
+    state = const AsyncValue.loading();
+    
+    final result = await ref.read(getUserUseCaseProvider)(userId);
+    
+    state = result.fold(
+      (failure) => AsyncValue.data(UserState.error(failure)),
+      (user) => AsyncValue.data(UserState.loaded(user)),
+    );
+  }
+}
+
+## Supabase Integration
+
+### Configuration
+
+Initialize Supabase in main.dart with proper error handling
+Use environment variables for Supabase URL and anon key
+Implement proper authentication flow with Supabase Auth
+Handle real-time subscriptions with proper disposal
+
+### Database Conventions
+
+Include createdAt, updatedAt, and isDeleted fields in all tables
+Use snake_case for database column names
+Implement Row Level Security (RLS) policies
+Use Supabase's built-in auth.uid() for user-specific queries
+
+### Repository Implementation
+
+```dart
+class UserRepositoryImpl implements UserRepository {
+  final SupabaseClient supabaseClient;
+  final UserLocalDataSource localDataSource;
+
+  UserRepositoryImpl({
+    required this.supabaseClient,
+    required this.localDataSource,
+  });
+
+  @override
+  Future<Either<Failure, User>> getUser(String id) async {
+    try {
+      final response = await supabaseClient
+          .from('users')
+          .select()
+          .eq('id', id)
+          .single();
+      
+      final user = UserModel.fromJson(response).toDomain();
+      await localDataSource.cacheUser(user);
+      return Right(user);
+    } on PostgrestException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (e) {
+      return Left(UnknownFailure());
+    }
+  }
+}
+```
+
+## Error Handling
+
+### Functional Error Handling with Dartz
+
+Use Either<Failure, Success> for error handling
+Create custom Failure classes for domain-specific errors
+Implement proper error mapping between layers
+Use AsyncValue for Riverpod error states
+
+```dart
+abstract class Failure extends Equatable {
+  final String message;
+  const Failure(this.message);
+  
+  @override
+  List<Object> get props => [message];
+}
+
+class ServerFailure extends Failure {
+  const ServerFailure([String message = 'Server error occurred']) : super(message);
+}
+
+class NetworkFailure extends Failure {
+  const NetworkFailure([String message = 'Network error occurred']) : super(message);
+}
+```
+
+### UI Error Display
+
+Use SelectableText.rich for error messages (not SnackBars)
+Display errors with red color for visibility
+Handle empty states within displaying screens
+Implement proper loading indicators
+
+## Dependency Injection
+
+### GetIt Setup
+
+```dart
+final getIt = GetIt.instance;
+
+void initDependencies() {
+  // Core
+  getIt.registerLazySingleton<SupabaseClient>(
+    () => Supabase.instance.client,
+  );
+  
+  // Data sources
+  getIt.registerLazySingleton<UserRemoteDataSource>(
+    () => UserRemoteDataSourceImpl(supabaseClient: getIt()),
+  );
+  
+  // Repositories
+  getIt.registerLazySingleton<UserRepository>(
+    () => UserRepositoryImpl(
+      supabaseClient: getIt(),
+      localDataSource: getIt(),
+    ),
+  );
+  
+  // Use cases
+  getIt.registerLazySingleton(() => GetUser(getIt()));
+}
+```
+
+## UI Implementation
+
+### Widget Structure
+
+Use ConsumerWidget for state-dependent widgets
+Use HookConsumerWidget when combining Riverpod and Flutter Hooks
+Create small, private widget classes (not methods)
+Use const constructors where possible
+
+```dart
+class UserPage extends HookConsumerWidget {
+  final String userId;
+
+  const UserPage({Key? key, required this.userId}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final userState = ref.watch(userNotifierProvider);
+
+    useEffect(() {
+      ref.read(userNotifierProvider.notifier).getUser(userId);
+      return null;
+    }, [userId]);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('User Details'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () => ref.invalidate(userNotifierProvider),
+          ),
+        ],
+      ),
+      body: userState.when(
+        data: (state) => state.when(
+          initial: () => const SizedBox(),
+          loading: () => const Center(child: CircularProgressIndicator()),
+          loaded: (user) => UserDetailsWidget(user: user),
+          error: (failure) => Center(
+            child: SelectableText.rich(
+              TextSpan(
+                text: failure.message,
+                style: const TextStyle(color: Colors.red),
+              ),
+            ),
+          ),
+        ),
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stack) => ErrorWidget(error: error),
+      ),
+    );
+  }
+}
+```
+
+### Navigation
+
+Use AutoRoute or GoRouter for type-safe navigation
+Implement deep linking support
+Pass data using route parameters or extras
+
+### Performance Optimization
+
+Use const widgets to minimize rebuilds
+Implement ListView.builder for large lists
+Use AssetImage for static images
+Use cached_network_image for remote images
+Profile with Flutter DevTools
+Minimize widget tree depth
+
+### Testing Strategy
+
+Unit test domain logic and use cases
+Test repositories with mocked data sources
+Test providers with ProviderContainer
+Widget test UI components
+Integration test complete features
+Follow Given-When-Then pattern
+
+### Code Quality
+
+Use flutter_lints for consistent code style
+Run build_runner after modifying annotated classes:
+flutter pub run build_runner build --delete-conflicting-outputs
+Keep lines under 80 characters
+Use trailing commas for better formatting
+Document complex logic
+Apply SOLID principles
+
+### Additional Conventions
+
+Use log (not print) for debugging
+Use Theme.of(context).textTheme with Material 3 naming
+Set appropriate TextField properties (textCapitalization, keyboardType)
+Always include errorBuilder for Image.network
+Implement RefreshIndicator for pull-to-refresh
+Use @JsonSerializable with FieldRename.snake for models
+Handle Supabase real-time updates with proper cleanup
+
+### Key Packages
+
+riverpod & flutter_riverpod
+freezed & freezed_annotation
+dartz (for functional programming)
+get_it (dependency injection)
+auto_route or go_router
+supabase_flutter
+flutter_hooks
+cached_network_image
+
