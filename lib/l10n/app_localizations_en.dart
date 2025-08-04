@@ -1,0 +1,220 @@
+// ignore: unused_import
+import 'package:intl/intl.dart' as intl;
+import 'app_localizations.dart';
+
+// ignore_for_file: type=lint
+
+/// The translations for English (`en`).
+class AppLocalizationsEn extends AppLocalizations {
+  AppLocalizationsEn([String locale = 'en']) : super(locale);
+
+  @override
+  String get appTitle => 'DinnerHelp';
+
+  @override
+  String get home => 'Home';
+
+  @override
+  String get search => 'Search';
+
+  @override
+  String get bookings => 'Bookings';
+
+  @override
+  String get messages => 'Messages';
+
+  @override
+  String get profile => 'Profile';
+
+  @override
+  String get availableChefsNearYou => 'Available Chefs Near You';
+
+  @override
+  String get popularChefsInRegion => 'Popular Chefs in Your Region';
+
+  @override
+  String get seeAll => 'See all';
+
+  @override
+  String get bookChef => 'Book Chef';
+
+  @override
+  String dkkPerHour(int rate) {
+    return '$rate DKK/hr';
+  }
+
+  @override
+  String kmAway(double distance) {
+    final intl.NumberFormat distanceNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String distanceString = distanceNumberFormat.format(distance);
+
+    return '$distanceString km away';
+  }
+
+  @override
+  String reviews(int count) {
+    return '$count reviews';
+  }
+
+  @override
+  String guests(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count guests',
+      one: '1 guest',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get noMessagesYet => 'No messages yet';
+
+  @override
+  String get startConversationWithChef => 'Start a conversation with a chef';
+
+  @override
+  String get upcoming => 'Upcoming';
+
+  @override
+  String get past => 'Past';
+
+  @override
+  String get cancelled => 'Cancelled';
+
+  @override
+  String get noUpcomingBookings => 'No upcoming bookings';
+
+  @override
+  String get noPastBookings => 'No past bookings';
+
+  @override
+  String get noCancelledBookings => 'No cancelled bookings';
+
+  @override
+  String get busy => 'Busy';
+
+  @override
+  String get verified => 'Verified';
+
+  @override
+  String get bookingDetails => 'Booking Details';
+
+  @override
+  String get date => 'Date';
+
+  @override
+  String get time => 'Time';
+
+  @override
+  String get address => 'Address';
+
+  @override
+  String get specialRequests => 'Special Requests';
+
+  @override
+  String get priceBreakdown => 'Price Breakdown';
+
+  @override
+  String get basePrice => 'Base Price';
+
+  @override
+  String get serviceFee => 'Service Fee';
+
+  @override
+  String get tax => 'Tax';
+
+  @override
+  String get total => 'Total';
+
+  @override
+  String get close => 'Close';
+
+  @override
+  String get currentLocation => 'Current Location';
+
+  @override
+  String get locationPermissionRequired => 'Location permission required';
+
+  @override
+  String get locationServicesDisabled => 'Location services are disabled';
+
+  @override
+  String get january => 'Jan';
+
+  @override
+  String get february => 'Feb';
+
+  @override
+  String get march => 'Mar';
+
+  @override
+  String get april => 'Apr';
+
+  @override
+  String get may => 'May';
+
+  @override
+  String get june => 'Jun';
+
+  @override
+  String get july => 'Jul';
+
+  @override
+  String get august => 'Aug';
+
+  @override
+  String get september => 'Sep';
+
+  @override
+  String get october => 'Oct';
+
+  @override
+  String get november => 'Nov';
+
+  @override
+  String get december => 'Dec';
+
+  @override
+  String get monday => 'Mon';
+
+  @override
+  String get tuesday => 'Tue';
+
+  @override
+  String get wednesday => 'Wed';
+
+  @override
+  String get thursday => 'Thu';
+
+  @override
+  String get friday => 'Fri';
+
+  @override
+  String get saturday => 'Sat';
+
+  @override
+  String get sunday => 'Sun';
+
+  @override
+  String get yesterday => 'Yesterday';
+
+  @override
+  String get now => 'now';
+
+  @override
+  String minutesAgo(int count) {
+    return '${count}m';
+  }
+
+  @override
+  String hoursAgo(int count) {
+    return '${count}h';
+  }
+
+  @override
+  String daysAgo(int count) {
+    return '${count}d';
+  }
+}

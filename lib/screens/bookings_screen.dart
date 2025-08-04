@@ -90,7 +90,7 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.only(top: 16, left: 16, right: 16, bottom: 100),
       itemCount: bookings.length,
       itemBuilder: (context, index) {
         final booking = bookings[index];

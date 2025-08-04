@@ -1,0 +1,350 @@
+{
+  "@@locale": "en",
+  
+  "appTitle": "DinnerHelp",
+  "@appTitle": {
+    "description": "The title of the application"
+  },
+  
+  "home": "Home",
+  "@home": {
+    "description": "Home navigation item"
+  },
+  
+  "search": "Search",
+  "@search": {
+    "description": "Search navigation item"
+  },
+  
+  "bookings": "Bookings",
+  "@bookings": {
+    "description": "Bookings navigation item"
+  },
+  
+  "messages": "Messages",
+  "@messages": {
+    "description": "Messages navigation item"
+  },
+  
+  "profile": "Profile",
+  "@profile": {
+    "description": "Profile navigation item"
+  },
+  
+  "availableChefsNearYou": "Available Chefs Near You",
+  "@availableChefsNearYou": {
+    "description": "Section title for nearby available chefs"
+  },
+  
+  "popularChefsInRegion": "Popular Chefs in Your Region",
+  "@popularChefsInRegion": {
+    "description": "Section title for popular regional chefs"
+  },
+  
+  "seeAll": "See all",
+  "@seeAll": {
+    "description": "Link to see all items"
+  },
+  
+  "bookChef": "Book Chef",
+  "@bookChef": {
+    "description": "Button to book a chef"
+  },
+  
+  "dkkPerHour": "{rate} DKK/hr",
+  "@dkkPerHour": {
+    "description": "Hourly rate format",
+    "placeholders": {
+      "rate": {
+        "type": "int",
+        "example": "450"
+      }
+    }
+  },
+  
+  "kmAway": "{distance} km away",
+  "@kmAway": {
+    "description": "Distance format",
+    "placeholders": {
+      "distance": {
+        "type": "double",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  
+  "reviews": "{count} reviews",
+  "@reviews": {
+    "description": "Review count format",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  
+  "guests": "{count, plural, =1{1 guest} other{{count} guests}}",
+  "@guests": {
+    "description": "Guest count with plural support",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  
+  "noMessagesYet": "No messages yet",
+  "@noMessagesYet": {
+    "description": "Empty state for messages"
+  },
+  
+  "startConversationWithChef": "Start a conversation with a chef",
+  "@startConversationWithChef": {
+    "description": "Prompt to start messaging"
+  },
+  
+  "upcoming": "Upcoming",
+  "@upcoming": {
+    "description": "Tab for upcoming bookings"
+  },
+  
+  "past": "Past",
+  "@past": {
+    "description": "Tab for past bookings"
+  },
+  
+  "cancelled": "Cancelled",
+  "@cancelled": {
+    "description": "Tab for cancelled bookings"
+  },
+  
+  "noUpcomingBookings": "No upcoming bookings",
+  "@noUpcomingBookings": {
+    "description": "Empty state for upcoming bookings"
+  },
+  
+  "noPastBookings": "No past bookings",
+  "@noPastBookings": {
+    "description": "Empty state for past bookings"
+  },
+  
+  "noCancelledBookings": "No cancelled bookings",
+  "@noCancelledBookings": {
+    "description": "Empty state for cancelled bookings"
+  },
+  
+  "busy": "Busy",
+  "@busy": {
+    "description": "Chef availability status"
+  },
+  
+  "verified": "Verified",
+  "@verified": {
+    "description": "Chef verification status"
+  },
+  
+  "bookingDetails": "Booking Details",
+  "@bookingDetails": {
+    "description": "Booking details dialog title"
+  },
+  
+  "date": "Date",
+  "@date": {
+    "description": "Date label"
+  },
+  
+  "time": "Time",
+  "@time": {
+    "description": "Time label"
+  },
+  
+  "address": "Address",
+  "@address": {
+    "description": "Address label"
+  },
+  
+  "specialRequests": "Special Requests",
+  "@specialRequests": {
+    "description": "Special requests label"
+  },
+  
+  "priceBreakdown": "Price Breakdown",
+  "@priceBreakdown": {
+    "description": "Price breakdown section title"
+  },
+  
+  "basePrice": "Base Price",
+  "@basePrice": {
+    "description": "Base price label"
+  },
+  
+  "serviceFee": "Service Fee",
+  "@serviceFee": {
+    "description": "Service fee label"
+  },
+  
+  "tax": "Tax",
+  "@tax": {
+    "description": "Tax label"
+  },
+  
+  "total": "Total",
+  "@total": {
+    "description": "Total price label"
+  },
+  
+  "close": "Close",
+  "@close": {
+    "description": "Close button"
+  },
+  
+  "currentLocation": "Current Location",
+  "@currentLocation": {
+    "description": "Current location option"
+  },
+  
+  "locationPermissionRequired": "Location permission required",
+  "@locationPermissionRequired": {
+    "description": "Location permission message"
+  },
+  
+  "locationServicesDisabled": "Location services are disabled",
+  "@locationServicesDisabled": {
+    "description": "Location services disabled message"
+  },
+  
+  "january": "Jan",
+  "@january": {
+    "description": "January abbreviation"
+  },
+  
+  "february": "Feb",
+  "@february": {
+    "description": "February abbreviation"
+  },
+  
+  "march": "Mar",
+  "@march": {
+    "description": "March abbreviation"
+  },
+  
+  "april": "Apr",
+  "@april": {
+    "description": "April abbreviation"
+  },
+  
+  "may": "May",
+  "@may": {
+    "description": "May abbreviation"
+  },
+  
+  "june": "Jun",
+  "@june": {
+    "description": "June abbreviation"
+  },
+  
+  "july": "Jul",
+  "@july": {
+    "description": "July abbreviation"
+  },
+  
+  "august": "Aug",
+  "@august": {
+    "description": "August abbreviation"
+  },
+  
+  "september": "Sep",
+  "@september": {
+    "description": "September abbreviation"
+  },
+  
+  "october": "Oct",
+  "@october": {
+    "description": "October abbreviation"
+  },
+  
+  "november": "Nov",
+  "@november": {
+    "description": "November abbreviation"
+  },
+  
+  "december": "Dec",
+  "@december": {
+    "description": "December abbreviation"
+  },
+  
+  "monday": "Mon",
+  "@monday": {
+    "description": "Monday abbreviation"
+  },
+  
+  "tuesday": "Tue",
+  "@tuesday": {
+    "description": "Tuesday abbreviation"
+  },
+  
+  "wednesday": "Wed",
+  "@wednesday": {
+    "description": "Wednesday abbreviation"
+  },
+  
+  "thursday": "Thu",
+  "@thursday": {
+    "description": "Thursday abbreviation"
+  },
+  
+  "friday": "Fri",
+  "@friday": {
+    "description": "Friday abbreviation"
+  },
+  
+  "saturday": "Sat",
+  "@saturday": {
+    "description": "Saturday abbreviation"
+  },
+  
+  "sunday": "Sun",
+  "@sunday": {
+    "description": "Sunday abbreviation"
+  },
+  
+  "yesterday": "Yesterday",
+  "@yesterday": {
+    "description": "Yesterday time label"
+  },
+  
+  "now": "now",
+  "@now": {
+    "description": "Now time label"
+  },
+  
+  "minutesAgo": "{count}m",
+  "@minutesAgo": {
+    "description": "Minutes ago format",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  
+  "hoursAgo": "{count}h",
+  "@hoursAgo": {
+    "description": "Hours ago format",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  
+  "daysAgo": "{count}d",
+  "@daysAgo": {
+    "description": "Days ago format",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
+}

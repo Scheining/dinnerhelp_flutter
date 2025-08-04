@@ -80,6 +80,7 @@ class MessagesScreen extends StatelessWidget {
               ),
             )
           : ListView.builder(
+              padding: const EdgeInsets.only(bottom: 100),
               itemCount: chats.length,
               itemBuilder: (context, index) {
                 final chat = chats[index];

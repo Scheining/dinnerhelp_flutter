@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:awesome_bottom_bar/awesome_bottom_bar.dart';
 import 'package:awesome_bottom_bar/widgets/inspired/inspired.dart';
+import 'package:homechef/core/localization/app_localizations_extension.dart';
 import 'package:homechef/screens/home_screen.dart';
 import 'package:homechef/screens/search_screen.dart';
 import 'package:homechef/screens/bookings_screen.dart';
@@ -26,26 +27,26 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   ];
 
   // Define navigation items for awesome_bottom_bar
-  List<TabItem> get _navigationItems => [
-    const TabItem(
+  List<TabItem> _navigationItems(BuildContext context) => [
+    TabItem(
       icon: Icons.home_outlined,
-      title: 'Home',
+      title: context.l10n.home,
     ),
-    const TabItem(
+    TabItem(
       icon: Icons.search_outlined,
-      title: 'Search',
+      title: context.l10n.search,
     ),
-    const TabItem(
+    TabItem(
       icon: Icons.calendar_today_outlined,
-      title: 'Bookings',
+      title: context.l10n.bookings,
     ),
-    const TabItem(
+    TabItem(
       icon: Icons.chat_bubble_outline,
-      title: 'Messages',
+      title: context.l10n.messages,
     ),
-    const TabItem(
+    TabItem(
       icon: Icons.person_outline,
-      title: 'Profile',
+      title: context.l10n.profile,
     ),
   ];
 
@@ -78,26 +79,23 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     return Scaffold(
       extendBody: true, // Allow body content to extend behind navigation bar
       body: _screens[_currentIndex],
-      bottomNavigationBar: Container(
-        color: Colors.transparent, // Make background transparent
-        child: SafeArea(
-          child: BottomBarInspiredOutside(
-            items: _navigationItems,
-            backgroundColor: Theme.of(context).scaffoldBackgroundColor, // Match theme background
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-            colorSelected: _getSelectedIconColor(context),
-            indexSelected: _currentIndex,
-            onTap: (int index) => setState(() {
-              _currentIndex = index;
-            }),
-            top: -25, // Creates the deep outside effect
-            animated: true,
-            itemStyle: ItemStyle.circle,
-            chipStyle: ChipStyle(
-              notchSmoothness: NotchSmoothness.verySmoothEdge,
-              background: _getSelectedBackgroundColor(context),
-            ),
-          ),
+      bottomNavigationBar: BottomBarInspiredOutside(
+        items: _navigationItems(context),
+        backgroundColor: Theme.of(context).brightness == Brightness.light
+            ? Colors.white
+            : Theme.of(context).colorScheme.surfaceContainerHighest, // White for light mode, elevated surface for dark
+        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+        colorSelected: _getSelectedIconColor(context),
+        indexSelected: _currentIndex,
+        onTap: (int index) => setState(() {
+          _currentIndex = index;
+        }),
+        top: -25, // Creates the deep outside effect
+        animated: true,
+        itemStyle: ItemStyle.circle,
+        chipStyle: ChipStyle(
+          notchSmoothness: NotchSmoothness.verySmoothEdge,
+          background: _getSelectedBackgroundColor(context),
         ),
       ),
     );

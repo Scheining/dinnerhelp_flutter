@@ -17,8 +17,13 @@ class LightModeColors {
   static const lightInversePrimary = Color(0xFFA7E0D9);
   static const lightShadow = Color(0xFF000000);
   static const lightSurface = Color(0xFFFAFAFA);
+  static const lightSurfaceContainerLowest = Color(0xFFFFFFFF);
+  static const lightSurfaceContainerLow = Color(0xFFF5F5F5);
+  static const lightSurfaceContainer = Color(0xFFF0F0F0);
+  static const lightSurfaceContainerHigh = Color(0xFFEBEBEB);
+  static const lightSurfaceContainerHighest = Color(0xFFE6E6E6);
   static const lightOnSurface = Color(0xFF292E31);
-  static const lightAppBarBackground = Color(0xFFE6F7F5);
+  static const lightAppBarBackground = Color(0xFFFFFFFF); // White app bar
 }
 
 class DarkModeColors {
@@ -37,6 +42,11 @@ class DarkModeColors {
   static const darkInversePrimary = Color(0xFF5A9B93);
   static const darkShadow = Color(0xFF000000);
   static const darkSurface = Color(0xFF1A1F20);
+  static const darkSurfaceContainerLowest = Color(0xFF0E1415);
+  static const darkSurfaceContainerLow = Color(0xFF1A1F20);
+  static const darkSurfaceContainer = Color(0xFF1E2324);
+  static const darkSurfaceContainerHigh = Color(0xFF282D2E);
+  static const darkSurfaceContainerHighest = Color(0xFF333839);
   static const darkOnSurface = Color(0xFFE0E0E0);
   static const darkAppBarBackground = Color(0xFF292E31);
 }
@@ -78,8 +88,14 @@ ThemeData get lightTheme => ThemeData(
     shadow: LightModeColors.lightShadow,
     surface: LightModeColors.lightSurface,
     onSurface: LightModeColors.lightOnSurface,
+    surfaceContainerLowest: LightModeColors.lightSurfaceContainerLowest,
+    surfaceContainerLow: LightModeColors.lightSurfaceContainerLow,
+    surfaceContainer: LightModeColors.lightSurfaceContainer,
+    surfaceContainerHigh: LightModeColors.lightSurfaceContainerHigh,
+    surfaceContainerHighest: LightModeColors.lightSurfaceContainerHighest,
   ),
   brightness: Brightness.light,
+  scaffoldBackgroundColor: LightModeColors.lightSurfaceContainerLow,
   appBarTheme: AppBarTheme(
     backgroundColor: LightModeColors.lightAppBarBackground,
     foregroundColor: LightModeColors.lightOnPrimaryContainer,
@@ -168,10 +184,16 @@ ThemeData get darkTheme => ThemeData(
     shadow: DarkModeColors.darkShadow,
     surface: DarkModeColors.darkSurface,
     onSurface: DarkModeColors.darkOnSurface,
+    surfaceContainerLowest: DarkModeColors.darkSurfaceContainerLowest,
+    surfaceContainerLow: DarkModeColors.darkSurfaceContainerLow,
+    surfaceContainer: DarkModeColors.darkSurfaceContainer,
+    surfaceContainerHigh: DarkModeColors.darkSurfaceContainerHigh,
+    surfaceContainerHighest: DarkModeColors.darkSurfaceContainerHighest,
   ),
   brightness: Brightness.dark,
+  scaffoldBackgroundColor: DarkModeColors.darkSurface,
   appBarTheme: AppBarTheme(
-    backgroundColor: DarkModeColors.darkAppBarBackground,
+    backgroundColor: DarkModeColors.darkSurfaceContainerHigh,
     foregroundColor: DarkModeColors.darkOnPrimaryContainer,
     elevation: 0,
   ),

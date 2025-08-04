@@ -94,7 +94,7 @@ final currentPositionProvider = AutoDisposeProvider<Position?>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef CurrentPositionRef = AutoDisposeProviderRef<Position?>;
-String _$locationNotifierHash() => r'1589241da0e9cf667226b62eba3b32c974a230a9';
+String _$locationNotifierHash() => r'0d54caba9a2ffcd40e0018fd45ea0c10dcc6e7d0';
 
 /// See also [LocationNotifier].
 @ProviderFor(LocationNotifier)

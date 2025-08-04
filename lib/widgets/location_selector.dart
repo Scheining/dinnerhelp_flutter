@@ -12,15 +12,25 @@ class LocationSelector extends ConsumerWidget {
     final locationState = ref.watch(locationNotifierProvider);
     final canAccess = ref.watch(canAccessLocationProvider);
 
-    return GestureDetector(
-      onTap: () => _handleLocationTap(context, ref),
-      child: Row(
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).brightness == Brightness.light
+            ? Colors.white
+            : Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: GestureDetector(
+        onTap: () => _handleLocationTap(context, ref),
+        child: Row(
         children: [
           Container(
             width: 30,
             height: 30,
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
+              color: Theme.of(context).brightness == Brightness.light
+                  ? Colors.grey.shade200
+                  : Colors.grey.shade800,
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -49,6 +59,7 @@ class LocationSelector extends ConsumerWidget {
             size: 16,
           ),
         ],
+      ),
       ),
     );
   }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:math' as math;
+import 'package:homechef/core/localization/app_localizations_extension.dart';
+import 'package:homechef/core/constants/spacing.dart';
 import 'package:homechef/models/chef.dart';
 import 'package:homechef/models/cuisine.dart';
 import 'package:homechef/models/carousel_item.dart';
@@ -27,14 +29,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   String? _selectedCuisine;
   Future<List<CarouselItem>>? _carouselItemsFuture;
   final ScrollController _scrollController = ScrollController();
-  bool _showCondensedCuisines = false;
+  double _scrollOffset = 0.0;
   final GlobalKey _cuisineKey = GlobalKey();
 
   @override
   void initState() {
     super.initState();
     _carouselItemsFuture = CarouselService.fetchCarouselItemsFromStorage();
-    _scrollController.addListener(_onScroll);
     // Request location on app start
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _requestInitialLocation();
@@ -56,23 +57,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   void dispose() {
-    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
-  }
-
-  void _onScroll() {
-    if (_cuisineKey.currentContext != null) {
-      final RenderBox? renderBox = _cuisineKey.currentContext!.findRenderObject() as RenderBox?;
-      if (renderBox != null) {
-        final position = renderBox.localToGlobal(Offset.zero);
-        
-        // Show condensed cuisines when the main cuisine section is scrolled out of view
-        setState(() {
-          _showCondensedCuisines = position.dy < -renderBox.size.height;
-        });
-      }
-    }
   }
 
   List<Chef> get _filteredChefs {
@@ -148,102 +134,91 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          CustomScrollView(
-            controller: _scrollController,
-            slivers: [
-              // Sticky header with location selector
+          NotificationListener<ScrollNotification>(
+            onNotification: (ScrollNotification notification) {
+              if (notification is ScrollUpdateNotification) {
+                setState(() {
+                  _scrollOffset = notification.metrics.pixels;
+                });
+              }
+              return false;
+            },
+            child: CustomScrollView(
+              controller: _scrollController,
+              slivers: [
+              // Sticky app bar with location selector
               SliverAppBar(
                 pinned: true,
                 floating: false,
-                expandedHeight: 60 + (_showCondensedCuisines ? 50 : 0),
-                collapsedHeight: 60 + (_showCondensedCuisines ? 50 : 0),
-                backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-                elevation: _showCondensedCuisines ? 2 : 0,
-                flexibleSpace: SafeArea(
-                  child: Column(
-                    children: [
-                      // Location selector row
-                      Container(
-                        height: 60,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        child: Row(
-                          children: [
-                            const Expanded(child: LocationSelector()),
-                            const SizedBox(width: 12),
-                            Stack(
-                              clipBehavior: Clip.none,
-                              children: [
-                                Container(
-                                  width: 30,
-                                  height: 30,
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey.shade800,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(
-                                    Icons.notifications_outlined,
-                                    color: Colors.white,
-                                    size: 16,
-                                  ),
-                                ),
-                                Positioned(
-                                  right: -4,
-                                  top: -4,
-                                  child: Container(
-                                    width: 16,
-                                    height: 16,
-                                    decoration: const BoxDecoration(
-                                      color: Colors.red,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Center(
-                                      child: Text(
-                                        '2',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      // Condensed cuisine selector (animated)
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        height: _showCondensedCuisines ? 50 : 0,
-                        child: AnimatedOpacity(
-                          duration: const Duration(milliseconds: 200),
-                          opacity: _showCondensedCuisines ? 1.0 : 0.0,
-                          child: CondensedCuisineSelector(
-                            cuisines: _cuisines,
-                            selectedCuisine: _selectedCuisine,
-                            onCuisineSelected: (cuisine) {
-                              setState(() {
-                                _selectedCuisine = cuisine;
-                              });
-                            },
+                toolbarHeight: 60,
+                backgroundColor: Theme.of(context).brightness == Brightness.light
+                    ? Colors.white
+                    : Theme.of(context).colorScheme.surfaceContainerHighest,
+                surfaceTintColor: Colors.transparent,
+                scrolledUnderElevation: 0,
+                elevation: 0,
+                forceElevated: false,
+                title: Row(
+                  children: [
+                    const Expanded(child: LocationSelector()),
+                    const SizedBox(width: 12),
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Container(
+                          width: 30,
+                          height: 30,
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).brightness == Brightness.light
+                                ? Colors.grey.shade200
+                                : Colors.grey.shade800,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.notifications_outlined,
+                            color: Theme.of(context).colorScheme.primary,
+                            size: 16,
                           ),
                         ),
-                      ),
-                    ],
-                  ),
+                        Positioned(
+                          right: -4,
+                          top: -4,
+                          child: Container(
+                            width: 16,
+                            height: 16,
+                            decoration: const BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Center(
+                              child: Text(
+                                '2',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
               
-              // Main cuisine selector
+              // Add spacing between location bar and cuisine selector
+              SliverToBoxAdapter(child: SizedBox(height: 16)),
+              
+              // Main cuisine selector (scrolls normally)
               SliverToBoxAdapter(
                 child: SizedBox(
                   key: _cuisineKey,
                   height: 120,
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: AppSpacing.sectionPadding,
                     itemCount: _cuisines.length,
                     itemBuilder: (context, index) {
                       final cuisine = _cuisines[index];
@@ -262,7 +237,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                 ),
               ),
-          const SliverToBoxAdapter(child: SizedBox(height: 12)),
           SliverToBoxAdapter(
             child: FutureBuilder<List<CarouselItem>>(
               future: _carouselItemsFuture,
@@ -351,10 +325,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               },
             ),
           ),
-          const SliverToBoxAdapter(child: SizedBox(height: 24)),
+          SliverToBoxAdapter(child: SizedBox(height: AppSpacing.betweenSectionsLarge)),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: AppSpacing.sectionPadding,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -369,7 +343,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       // TODO: Navigate to all chefs screen
                     },
                     child: Text(
-                      'See all',
+                      context.l10n.seeAll,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: theme.colorScheme.primary,
                         fontWeight: FontWeight.w500,
@@ -380,13 +354,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ),
           ),
-          const SliverToBoxAdapter(child: SizedBox(height: 8)),
+          SliverToBoxAdapter(child: SizedBox(height: AppSpacing.betweenSectionsSmall)),
           SliverToBoxAdapter(
             child: SizedBox(
               height: 200,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: AppSpacing.sectionPadding,
                 itemCount: availableChefs.length,
                 itemBuilder: (context, index) {
                   final chef = availableChefs[index];
@@ -405,25 +379,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ),
           ),
-          const SliverToBoxAdapter(child: SizedBox(height: 24)),
+          SliverToBoxAdapter(child: SizedBox(height: AppSpacing.betweenSectionsLarge)),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: AppSpacing.sectionPadding,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Available Chefs Near You',
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w600,
+                  Expanded(
+                    child: Text(
+                      context.l10n.availableChefsNearYou,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
+                  const SizedBox(width: 8),
                   GestureDetector(
                     onTap: () {
                       // TODO: Navigate to all available chefs screen
                     },
                     child: Text(
-                      'See all',
+                      context.l10n.seeAll,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: theme.colorScheme.primary,
                         fontWeight: FontWeight.w500,
@@ -434,13 +412,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ),
           ),
-          const SliverToBoxAdapter(child: SizedBox(height: 12)),
+          SliverToBoxAdapter(child: SizedBox(height: AppSpacing.betweenSectionsMedium)),
           SliverToBoxAdapter(
             child: SizedBox(
-              height: 280,
+              height: 285,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: AppSpacing.sectionPadding,
                 itemCount: availableChefs.length,
                 itemBuilder: (context, index) {
                   final chef = availableChefs[index];
@@ -460,40 +438,130 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ),
           ),
-          const SliverToBoxAdapter(child: SizedBox(height: 24)),
+          SliverToBoxAdapter(child: SizedBox(height: AppSpacing.betweenSectionsLarge)),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                'Popular Chefs in Your Region',
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+              padding: AppSpacing.sectionPadding,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      context.l10n.popularChefsInRegion,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () {
+                      // TODO: Navigate to all popular chefs screen
+                    },
+                    child: Text(
+                      context.l10n.seeAll,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
-          const SliverToBoxAdapter(child: SizedBox(height: 8)),
-          SliverList(
-            delegate: SliverChildBuilderDelegate((context, index) {
-              final chef = popularChefs[index];
-              return ChefCard(
-                chef: chef,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ChefProfileScreen(chef: chef),
-                    ),
+          SliverToBoxAdapter(child: SizedBox(height: AppSpacing.betweenSectionsMedium)),
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: 285,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                padding: AppSpacing.sectionPadding,
+                itemCount: popularChefs.length,
+                itemBuilder: (context, index) {
+                  final chef = popularChefs[index];
+                  return ChefCard(
+                    chef: chef,
+                    isCompact: true,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ChefProfileScreen(chef: chef),
+                        ),
+                      );
+                    },
                   );
                 },
-              );
-            }, childCount: popularChefs.length),
+              ),
+            ),
           ),
-          const SliverToBoxAdapter(child: SizedBox(height: 100)),
-            ],
+          const SliverToBoxAdapter(child: SizedBox(height: 100)), // Bottom navigation padding
+              ],
+            ),
+          ),
+          
+          // Animated condensed cuisine selector overlay (directly attached to app bar)
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 59, // Position right below the app bar
+            left: 0,
+            right: 0,
+            child: _buildAnimatedCuisineSelector(),
           ),
         ],
       ),
     );
   }
+  
+  Widget _buildAnimatedCuisineSelector() {
+    // Calculate the actual position of the cuisine selector
+    double progress = 0.0;
+    
+    if (_cuisineKey.currentContext != null) {
+      final RenderBox? renderBox = _cuisineKey.currentContext!.findRenderObject() as RenderBox?;
+      if (renderBox != null) {
+        final position = renderBox.localToGlobal(Offset.zero);
+        final appBarHeight = 60 + MediaQuery.of(context).padding.top;
+        
+        // Start showing when the cuisine selector is about to go under the app bar
+        final triggerPoint = appBarHeight;
+        
+        if (position.dy < triggerPoint) {
+          // Calculate progress based on how much the selector has scrolled under
+          progress = ((triggerPoint - position.dy) / 50).clamp(0.0, 1.0);
+        }
+      }
+    }
+    
+    if (progress == 0) {
+      return const SizedBox.shrink();
+    }
+    
+    return Transform.translate(
+      offset: Offset(0, -50 * (1 - progress)), // Slide down from top
+      child: Opacity(
+        opacity: progress,
+        child: Container(
+          height: 50,
+          decoration: BoxDecoration(
+            color: Theme.of(context).brightness == Brightness.light
+                ? Colors.white
+                : Theme.of(context).colorScheme.surfaceContainerHighest,
+          ),
+          child: CondensedCuisineSelector(
+            cuisines: _cuisines,
+            selectedCuisine: _selectedCuisine,
+            onCuisineSelected: (cuisine) {
+              setState(() {
+                _selectedCuisine = cuisine;
+              });
+            },
+          ),
+        ),
+      ),
+    );
+  }
 }
+
+
