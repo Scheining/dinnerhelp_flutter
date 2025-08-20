@@ -46,20 +46,26 @@ class FavoriteChefsScreen extends ConsumerWidget {
                   Icon(
                     Icons.favorite_outline,
                     size: 80,
-                    color: Colors.grey.shade400,
+                    color: theme.brightness == Brightness.dark
+                        ? Colors.grey.shade600
+                        : Colors.grey.shade400,
                   ),
                   const SizedBox(height: 16),
                   Text(
                     'Ingen favorit kokke endnu',
                     style: theme.textTheme.titleMedium?.copyWith(
-                      color: Colors.grey.shade600,
+                      color: theme.brightness == Brightness.dark
+                          ? Colors.grey.shade300
+                          : Colors.grey.shade600,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'Start med at tilføje nogle kokke til dine favoritter',
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: Colors.grey.shade500,
+                      color: theme.brightness == Brightness.dark
+                          ? Colors.grey.shade400
+                          : Colors.grey.shade500,
                     ),
                   ),
                 ],
@@ -84,11 +90,15 @@ class FavoriteChefsScreen extends ConsumerWidget {
               return Container(
                 margin: const EdgeInsets.only(bottom: 12),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: theme.brightness == Brightness.dark
+                      ? Colors.grey.shade900
+                      : Colors.white,
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: theme.brightness == Brightness.dark
+                          ? Colors.black.withOpacity(0.3)
+                          : Colors.black.withOpacity(0.05),
                       blurRadius: 10,
                       offset: const Offset(0, 2),
                     ),
@@ -152,12 +162,20 @@ class FavoriteChefsScreen extends ConsumerWidget {
                             Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.location_on, size: 14, color: Colors.grey.shade600),
+                                Icon(
+                                  Icons.location_on, 
+                                  size: 14, 
+                                  color: theme.brightness == Brightness.dark
+                                      ? Colors.grey.shade400
+                                      : Colors.grey.shade600,
+                                ),
                                 const SizedBox(width: 4),
                                 Text(
                                   PostalCodeMapper.formatLocation(chefData['postal_code']),
                                   style: TextStyle(
-                                    color: Colors.grey.shade600,
+                                    color: theme.brightness == Brightness.dark
+                                        ? Colors.grey.shade400
+                                        : Colors.grey.shade600,
                                     fontSize: 12,
                                   ),
                                 ),

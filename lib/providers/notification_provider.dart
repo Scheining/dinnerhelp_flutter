@@ -1,12 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:homechef/services/onesignal_service.dart';
 import 'package:homechef/providers/auth_provider.dart';
 
-part 'notification_provider.g.dart';
-
-@riverpod
-class NotificationNotifier extends _$NotificationNotifier {
+class NotificationNotifier extends AsyncNotifier<bool> {
   @override
   Future<bool> build() async {
     // Listen to auth state changes
@@ -102,7 +98,7 @@ class NotificationNotifier extends _$NotificationNotifier {
 }
 
 /// Provider for notification service
-final notificationProvider = NotifierProvider<NotificationNotifier, AsyncValue<bool>>(
+final notificationProvider = AsyncNotifierProvider<NotificationNotifier, bool>(
   NotificationNotifier.new,
 );
 
@@ -121,4 +117,11 @@ final oneSignalSubscriptionIdProvider = Provider<String?>((ref) {
 final oneSignalUserIdProvider = Provider<String?>((ref) {
   ref.watch(notificationProvider); // Ensure provider is built
   return OneSignalService.instance.getOneSignalId();
+});
+
+/// Provider for total unread notification count
+final totalUnreadCountProvider = FutureProvider<int>((ref) async {
+  // For now, return 0 - this would normally fetch from a database or API
+  // You can implement actual logic to fetch unread notifications from Supabase
+  return 0;
 });

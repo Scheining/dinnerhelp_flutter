@@ -192,10 +192,11 @@ ThemeData get darkTheme => ThemeData(
   ),
   brightness: Brightness.dark,
   scaffoldBackgroundColor: DarkModeColors.darkSurface,
-  appBarTheme: AppBarTheme(
-    backgroundColor: DarkModeColors.darkSurfaceContainerHigh,
+  appBarTheme: const AppBarTheme(
+    backgroundColor: Color(0xFF282D2E), // darkSurfaceContainerHigh
     foregroundColor: DarkModeColors.darkOnPrimaryContainer,
     elevation: 0,
+    surfaceTintColor: Colors.transparent, // Prevent Material 3 tinting
   ),
   textTheme: TextTheme(
     displayLarge: GoogleFonts.inter(

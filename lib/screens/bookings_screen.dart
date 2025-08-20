@@ -56,7 +56,9 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
     final cancelledBookingsAsync = ref.watch(bookingsByStatusProvider(BookingStatus.cancelled));
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: theme.brightness == Brightness.dark 
+          ? theme.scaffoldBackgroundColor 
+          : Colors.grey.shade50,
       body: NestedScrollView(
         headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
           return [
@@ -65,7 +67,9 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
               pinned: true,
               snap: false,
               expandedHeight: 90.0,
-              backgroundColor: Colors.white,
+              backgroundColor: theme.brightness == Brightness.dark 
+                  ? theme.appBarTheme.backgroundColor 
+                  : Colors.white,
               elevation: 0,
               collapsedHeight: kToolbarHeight,
               title: AnimatedOpacity(
@@ -75,7 +79,9 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
                   'Bookinger',
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: Colors.black,
+                    color: theme.brightness == Brightness.dark 
+                        ? Colors.white 
+                        : Colors.black,
                   ),
                 ),
               ),
@@ -91,7 +97,9 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
                     ),
                     title: null,
                     background: Container(
-                      color: Colors.white,
+                      color: theme.brightness == Brightness.dark 
+                          ? theme.appBarTheme.backgroundColor 
+                          : Colors.white,
                     ),
                   );
                 },
@@ -99,7 +107,9 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
               bottom: PreferredSize(
                 preferredSize: const Size.fromHeight(48),
                 child: Container(
-                  color: Colors.white,
+                  color: theme.brightness == Brightness.dark 
+                      ? theme.appBarTheme.backgroundColor 
+                      : Colors.white,
                   child: TabBar(
                     controller: _tabController,
                     tabs: [
@@ -108,7 +118,9 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
                       Tab(text: l10n.cancelledTab),
                     ],
                     labelColor: theme.colorScheme.primary,
-                    unselectedLabelColor: Colors.grey.shade600,
+                    unselectedLabelColor: theme.brightness == Brightness.dark 
+                        ? Colors.grey.shade400 
+                        : Colors.grey.shade600,
                     indicatorColor: theme.colorScheme.primary,
                     indicatorWeight: 3,
                     dividerColor: Colors.transparent,
@@ -198,6 +210,7 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
 
   Widget _buildBookingsList(List<Booking> bookings, String emptyMessage, bool isUpcoming) {
     final l10n = context.l10n;
+    final theme = Theme.of(context);
     
     if (bookings.isEmpty) {
       return Center(
@@ -207,20 +220,26 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
             Container(
               padding: const EdgeInsets.all(32),
               decoration: BoxDecoration(
-                color: Colors.grey.shade100,
+                color: theme.brightness == Brightness.dark
+                    ? Colors.grey.shade800
+                    : Colors.grey.shade100,
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 isUpcoming ? Icons.calendar_today_outlined : Icons.history_outlined,
                 size: 64,
-                color: Colors.grey.shade400,
+                color: theme.brightness == Brightness.dark
+                    ? Colors.grey.shade600
+                    : Colors.grey.shade400,
               ),
             ),
             const SizedBox(height: 24),
             Text(
               emptyMessage,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: Colors.grey.shade700,
+                color: theme.brightness == Brightness.dark
+                    ? Colors.grey.shade300
+                    : Colors.grey.shade700,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -229,7 +248,9 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
               Text(
                 l10n.findYourNextChef,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey.shade600,
+                  color: theme.brightness == Brightness.dark
+                      ? Colors.grey.shade400
+                      : Colors.grey.shade600,
                 ),
               ),
               const SizedBox(height: 24),
@@ -281,7 +302,9 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.brightness == Brightness.dark 
+            ? theme.colorScheme.surface 
+            : Colors.white,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           // Primary shadow for elevation
@@ -668,10 +691,12 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
                                 Expanded(
                                   child: Text(
                                     booking.address.split(',').first,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w600,
-                                      color: Color(0xFF2C3E50),
+                                      color: theme.brightness == Brightness.dark
+                                          ? Colors.grey.shade300
+                                          : const Color(0xFF2C3E50),
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
@@ -725,7 +750,9 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w500,
-                                color: Colors.grey.shade600,
+                                color: theme.brightness == Brightness.dark
+                                    ? Colors.grey.shade400
+                                    : Colors.grey.shade600,
                               ),
                             ),
                           ),
@@ -752,14 +779,21 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
                           gradient: LinearGradient(
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
-                            colors: [
-                              Colors.amber.shade50,
-                              Colors.amber.shade50.withOpacity(0.5),
-                            ],
+                            colors: theme.brightness == Brightness.dark
+                                ? [
+                                    Colors.amber.shade900.withOpacity(0.2),
+                                    Colors.amber.shade900.withOpacity(0.1),
+                                  ]
+                                : [
+                                    Colors.amber.shade50,
+                                    Colors.amber.shade50.withOpacity(0.5),
+                                  ],
                           ),
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(
-                            color: Colors.amber.shade300.withOpacity(0.4),
+                            color: theme.brightness == Brightness.dark
+                                ? Colors.amber.shade700.withOpacity(0.3)
+                                : Colors.amber.shade300.withOpacity(0.4),
                             width: 1,
                           ),
                         ),
@@ -769,13 +803,17 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
                             Container(
                               padding: const EdgeInsets.all(6),
                               decoration: BoxDecoration(
-                                color: Colors.amber.shade100,
+                                color: theme.brightness == Brightness.dark
+                                    ? Colors.amber.shade800.withOpacity(0.3)
+                                    : Colors.amber.shade100,
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Icon(
                                 Icons.sticky_note_2_rounded,
                                 size: 14,
-                                color: Colors.amber.shade700,
+                                color: theme.brightness == Brightness.dark
+                                    ? Colors.amber.shade400
+                                    : Colors.amber.shade700,
                               ),
                             ),
                             const SizedBox(width: 10),
@@ -783,7 +821,9 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
                               child: Text(
                                 booking.notes!,
                                 style: TextStyle(
-                                  color: Colors.amber.shade900,
+                                  color: theme.brightness == Brightness.dark
+                                      ? Colors.amber.shade200
+                                      : Colors.amber.shade900,
                                   fontSize: 13,
                                   fontWeight: FontWeight.w500,
                                   height: 1.4,
@@ -887,10 +927,12 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
           Expanded(
             child: Text(
               text,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF2C3E50),
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade300
+                    : const Color(0xFF2C3E50),
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -1011,7 +1053,9 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
           child: Text(
             text,
             style: TextStyle(
-              color: Colors.grey.shade800,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.grey.shade300
+                  : Colors.grey.shade800,
               fontSize: 14,
               height: 1.4,
             ),
@@ -1097,9 +1141,11 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
         height: MediaQuery.of(context).size.height * 0.75,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.only(
+        decoration: BoxDecoration(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Theme.of(context).colorScheme.surface
+              : Colors.white,
+          borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(25),
             topRight: Radius.circular(25),
           ),
@@ -1112,7 +1158,9 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade700
+                    : Colors.grey.shade300,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -1132,7 +1180,9 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
                     onPressed: () => Navigator.of(context).pop(),
                     icon: const Icon(Icons.close),
                     style: IconButton.styleFrom(
-                      backgroundColor: Colors.grey.shade100,
+                      backgroundColor: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.grey.shade800
+                          : Colors.grey.shade100,
                     ),
                   ),
                 ],
@@ -1303,7 +1353,9 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
                         width: double.infinity,
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade50,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.grey.shade800
+                              : Colors.grey.shade50,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
@@ -1324,7 +1376,9 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade50,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.grey.shade800
+                            : Colors.grey.shade50,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Column(
@@ -1383,7 +1437,9 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
                 Text(
                   label,
                   style: TextStyle(
-                    color: Colors.grey.shade600,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey.shade400
+                        : Colors.grey.shade600,
                     fontSize: 12,
                   ),
                 ),
@@ -1412,7 +1468,9 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
           style: TextStyle(
             fontSize: isTotal ? 16 : 14,
             fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
-            color: isTotal ? Colors.black : Colors.grey.shade700,
+            color: isTotal 
+                ? (Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black)
+                : (Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade700),
           ),
         ),
         Text(
@@ -1420,7 +1478,9 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
           style: TextStyle(
             fontSize: isTotal ? 18 : 14,
             fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
-            color: isTotal ? Theme.of(context).colorScheme.primary : Colors.grey.shade700,
+            color: isTotal 
+                ? Theme.of(context).colorScheme.primary 
+                : (Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade700),
           ),
         ),
       ],
@@ -1434,9 +1494,11 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
         padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.only(
+        decoration: BoxDecoration(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Theme.of(context).colorScheme.surface
+              : Colors.white,
+          borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(25),
             topRight: Radius.circular(25),
           ),
@@ -1449,7 +1511,9 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
               height: 4,
               margin: const EdgeInsets.only(bottom: 24),
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade700
+                    : Colors.grey.shade300,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -1469,7 +1533,9 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
             Text(
               l10n.cancelBookingConfirmation,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Colors.grey.shade600,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade400
+                    : Colors.grey.shade600,
               ),
               textAlign: TextAlign.center,
             ),
@@ -1477,7 +1543,9 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.grey.shade50,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade800
+                    : Colors.grey.shade50,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
@@ -1566,7 +1634,9 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
         Text(
           label,
           style: TextStyle(
-            color: Colors.grey.shade600,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey.shade400
+                : Colors.grey.shade600,
             fontSize: 14,
           ),
         ),

@@ -129,14 +129,14 @@ class BookingRepository {
       
       // Handle specific status transitions
       switch (status) {
-        case BookingStatus.accepted:
+        case BookingStatus.confirmed:
           // Accepting booking triggers payment authorization via database trigger
           print('Accepting booking - payment authorization will be initiated');
           break;
         case BookingStatus.completed:
           // Completing booking triggers payment capture via database trigger
           if (tipAmount != null && tipAmount > 0) {
-            updateData['tip_amount'] = (tipAmount * 100).round(); // Convert to øre
+            updateData['tip_amount'] = (tipAmount * 100).round().toString(); // Convert to øre as string
           }
           print('Completing booking - payment will be captured');
           break;
@@ -159,14 +159,15 @@ class BookingRepository {
       final updatedBooking = _mapToBooking(response);
       
       // Log payment status for specific transitions
-      final paymentStatus = updatedBooking.paymentStatus;
-      if (status == BookingStatus.accepted && paymentStatus == PaymentStatus.pendingSetup) {
-        print('Warning: Chef needs to complete Stripe account setup');
-      } else if (status == BookingStatus.accepted && paymentStatus == PaymentStatus.authorizationPending) {
-        print('Payment authorization initiated');
-      } else if (status == BookingStatus.completed && paymentStatus == PaymentStatus.capturePending) {
-        print('Payment capture initiated');
-      }
+      // TODO: Update payment status checks based on actual PaymentStatus enum values
+      // final paymentStatus = updatedBooking.paymentStatus;
+      // if (status == BookingStatus.confirmed && paymentStatus == PaymentStatus.pendingSetup) {
+      //   print('Warning: Chef needs to complete Stripe account setup');
+      // } else if (status == BookingStatus.confirmed && paymentStatus == PaymentStatus.authorizationPending) {
+      //   print('Payment authorization initiated');
+      // } else if (status == BookingStatus.completed && paymentStatus == PaymentStatus.capturePending) {
+      //   print('Payment capture initiated');
+      // }
       
       return updatedBooking;
     } catch (e) {
@@ -237,14 +238,7 @@ class BookingRepository {
       if (booking.paymentStatus == PaymentStatus.authorized || 
           booking.paymentStatus == PaymentStatus.succeeded) {
         // Calculate hours until booking
-        final bookingDateTime = DateTime(
-          booking.date.year,
-          booking.date.month,
-          booking.date.day,
-          booking.startTime.hour,
-          booking.startTime.minute,
-        );
-        final hoursUntilBooking = bookingDateTime.difference(DateTime.now()).inHours;
+        final hoursUntilBooking = booking.dateTime.difference(DateTime.now()).inHours;
         
         // Notify user about refund policy
         String refundMessage;

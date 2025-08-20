@@ -120,7 +120,8 @@ class OneSignalService {
   /// Get the OneSignal user ID
   String? getOneSignalId() {
     try {
-      return OneSignal.User.onesignalId;
+      // In OneSignal 5.x, use OneSignal.User.pushSubscription.id
+      return OneSignal.User.pushSubscription.id;
     } catch (e) {
       debugPrint('OneSignal get user ID failed: $e');
       return null;
@@ -130,7 +131,7 @@ class OneSignalService {
   /// Check if user has granted notification permission
   bool hasNotificationPermission() {
     try {
-      return OneSignal.User.pushSubscription.optedIn;
+      return OneSignal.User.pushSubscription.optedIn ?? false;
     } catch (e) {
       debugPrint('OneSignal check permission failed: $e');
       return false;

@@ -1,5 +1,5 @@
 PODS:
-  - app_links (0.0.2):
+  - app_links (6.4.1):
     - Flutter
   - Flutter (1.0.0)
   - geocoding_ios (1.0.5):
@@ -7,14 +7,11 @@ PODS:
   - geolocator_apple (1.2.0):
     - Flutter
     - FlutterMacOS
-<<<<<<< Updated upstream
-=======
   - image_picker_ios (0.0.1):
     - Flutter
   - onesignal_flutter (5.3.4):
     - Flutter
     - OneSignalXCFramework (= 5.2.14)
->>>>>>> Stashed changes
   - OneSignalXCFramework (5.2.14):
     - OneSignalXCFramework/OneSignalComplete (= 5.2.14)
   - OneSignalXCFramework/OneSignal (5.2.14):
@@ -134,12 +131,9 @@ DEPENDENCIES:
   - Flutter (from `Flutter`)
   - geocoding_ios (from `.symlinks/plugins/geocoding_ios/ios`)
   - geolocator_apple (from `.symlinks/plugins/geolocator_apple/darwin`)
-<<<<<<< Updated upstream
-  - OneSignalXCFramework (< 6.0, >= 5.0.0)
-=======
   - image_picker_ios (from `.symlinks/plugins/image_picker_ios/ios`)
   - onesignal_flutter (from `.symlinks/plugins/onesignal_flutter/ios`)
->>>>>>> Stashed changes
+  - OneSignalXCFramework (< 6.0, >= 5.0.0)
   - package_info_plus (from `.symlinks/plugins/package_info_plus/ios`)
   - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
   - permission_handler_apple (from `.symlinks/plugins/permission_handler_apple/ios`)
@@ -150,8 +144,6 @@ DEPENDENCIES:
 SPEC REPOS:
   trunk:
     - OneSignalXCFramework
-<<<<<<< Updated upstream
-=======
     - Stripe
     - StripeApplePay
     - StripeCore
@@ -160,7 +152,6 @@ SPEC REPOS:
     - StripePaymentSheet
     - StripePaymentsUI
     - StripeUICore
->>>>>>> Stashed changes
 
 EXTERNAL SOURCES:
   app_links:
@@ -189,15 +180,12 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/url_launcher_ios/ios"
 
 SPEC CHECKSUMS:
-  app_links: 76b66b60cc809390ca1ad69bfd66b998d2387ac7
+  app_links: 3dbc685f76b1693c66a6d9dd1e9ab6f73d97dc0a
   Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
   geocoding_ios: 33776c9ebb98d037b5e025bb0e7537f6dd19646e
   geolocator_apple: ab36aa0e8b7d7a2d7639b3b4e48308394e8cef5e
-<<<<<<< Updated upstream
-=======
   image_picker_ios: 7fe1ff8e34c1790d6fff70a32484959f563a928a
   onesignal_flutter: 3a2b51f9262c851166a882a553d71a8ccec4e29c
->>>>>>> Stashed changes
   OneSignalXCFramework: 7112f3e89563e41ebc23fe807788f11985ac541c
   package_info_plus: af8e2ca6888548050f16fa2f1938db7b5a5df499
   path_provider_foundation: 080d55be775b7414fd5a5ef3ac137b97b097e564
@@ -214,10 +202,6 @@ SPEC CHECKSUMS:
   StripeUICore: 17a4f3adb81ae05ab885e1b353022a430176eab1
   url_launcher_ios: 694010445543906933d732453a59da0a173ae33d
 
-<<<<<<< Updated upstream
 PODFILE CHECKSUM: 5a788b5ef2a82d485e45208f1fc6778a979ba2c9
-=======
-PODFILE CHECKSUM: a57f30d18f102dd3ce366b1d62a55ecbef2158e5
->>>>>>> Stashed changes
 
 COCOAPODS: 1.16.2

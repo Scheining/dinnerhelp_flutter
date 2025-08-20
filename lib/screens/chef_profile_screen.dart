@@ -22,7 +22,9 @@ class ChefProfileScreen extends ConsumerWidget {
     final screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: theme.brightness == Brightness.dark
+          ? theme.scaffoldBackgroundColor
+          : Colors.grey.shade50,
       body: Stack(
         children: [
           // Fixed header image background
@@ -70,14 +72,18 @@ class ChefProfileScreen extends ConsumerWidget {
                     // White card with rounded top corners
                     Container(
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: theme.brightness == Brightness.dark
+                            ? Colors.grey.shade900
+                            : Colors.white,
                         borderRadius: const BorderRadius.only(
                           topLeft: Radius.circular(24),
                           topRight: Radius.circular(24),
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
+                            color: Colors.black.withOpacity(
+                              theme.brightness == Brightness.dark ? 0.3 : 0.1
+                            ),
                             blurRadius: 20,
                             offset: const Offset(0, -5),
                           ),
@@ -108,7 +114,9 @@ class ChefProfileScreen extends ConsumerWidget {
                                       Text(
                                         '(${chef.reviewCount} anmeldelser)',
                                         style: TextStyle(
-                                          color: Colors.grey.shade600,
+                                          color: theme.brightness == Brightness.dark
+                                              ? Colors.grey.shade400
+                                              : Colors.grey.shade600,
                                           fontSize: 14,
                                         ),
                                       ),
@@ -149,7 +157,9 @@ class ChefProfileScreen extends ConsumerWidget {
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.grey.shade900,
+                                color: theme.brightness == Brightness.dark
+                                    ? Colors.white
+                                    : Colors.grey.shade900,
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -158,7 +168,9 @@ class ChefProfileScreen extends ConsumerWidget {
                                 ? chef.bio 
                                 : 'Velkommen, mit navn er ${chef.name}. Jeg arbejder jeg som professionel kok på restaurant Paté Paté i Kødbyen. Jeg er passioneret omkring madlavning og tror på, at mad skal være en oplevelse, der både smager godt og gør godt for kroppen.\n\nMin filosofi er enkel: Brug friske, sæsonbaserede råvarer, minimer madspild og udforsk kreative smagsoplevelser.',
                               style: TextStyle(
-                                color: Colors.grey.shade700,
+                                color: theme.brightness == Brightness.dark
+                                    ? Colors.grey.shade300
+                                    : Colors.grey.shade700,
                                 fontSize: 14,
                                 height: 1.6,
                               ),
@@ -243,7 +255,9 @@ class ChefProfileScreen extends ConsumerWidget {
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.grey.shade900,
+                                  color: theme.brightness == Brightness.dark
+                                      ? Colors.white
+                                      : Colors.grey.shade900,
                                 ),
                               ),
                               const SizedBox(height: 12),
@@ -289,7 +303,9 @@ class ChefProfileScreen extends ConsumerWidget {
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.grey.shade900,
+                                  color: theme.brightness == Brightness.dark
+                                      ? Colors.white
+                                      : Colors.grey.shade900,
                                 ),
                               ),
                               const SizedBox(height: 12),
@@ -300,13 +316,17 @@ class ChefProfileScreen extends ConsumerWidget {
                                   return Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                     decoration: BoxDecoration(
-                                      color: Colors.grey.shade100,
+                                      color: theme.brightness == Brightness.dark
+                                          ? Colors.grey.shade800
+                                          : Colors.grey.shade100,
                                       borderRadius: BorderRadius.circular(20),
                                     ),
                                     child: Text(
                                       _translateLanguage(language),
                                       style: TextStyle(
-                                        color: Colors.grey.shade700,
+                                        color: theme.brightness == Brightness.dark
+                                            ? Colors.grey.shade300
+                                            : Colors.grey.shade700,
                                         fontWeight: FontWeight.w500,
                                         fontSize: 14,
                                       ),
@@ -347,7 +367,9 @@ class ChefProfileScreen extends ConsumerWidget {
                                 Text(
                                   'Pris fra',
                                   style: TextStyle(
-                                    color: Colors.grey.shade600,
+                                    color: theme.brightness == Brightness.dark
+                                        ? Colors.grey.shade400
+                                        : Colors.grey.shade600,
                                     fontSize: 14,
                                   ),
                                 ),
@@ -513,10 +535,14 @@ class ChefProfileScreen extends ConsumerWidget {
                 MediaQuery.of(context).padding.bottom + 16,
               ),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: theme.brightness == Brightness.dark
+                    ? Colors.grey.shade900
+                    : Colors.white,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withOpacity(
+                      theme.brightness == Brightness.dark ? 0.3 : 0.05
+                    ),
                     blurRadius: 10,
                     offset: const Offset(0, -5),
                   ),
@@ -574,14 +600,20 @@ class ChefProfileScreen extends ConsumerWidget {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        side: BorderSide(color: Colors.grey.shade300),
+                        side: BorderSide(
+                          color: theme.brightness == Brightness.dark
+                              ? Colors.grey.shade700
+                              : Colors.grey.shade300,
+                        ),
                       ),
                       child: Text(
                         'Send besked',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: Colors.grey.shade700,
+                          color: theme.brightness == Brightness.dark
+                              ? Colors.grey.shade300
+                              : Colors.grey.shade700,
                         ),
                       ),
                     ),
@@ -673,10 +705,13 @@ class ChefProfileScreen extends ConsumerWidget {
     Color backgroundColor,
     Color iconColor,
   ) {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: backgroundColor,
+        color: theme.brightness == Brightness.dark
+            ? backgroundColor.withOpacity(0.2)
+            : backgroundColor,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -687,7 +722,9 @@ class ChefProfileScreen extends ConsumerWidget {
           Text(
             label,
             style: TextStyle(
-              color: Colors.grey.shade600,
+              color: theme.brightness == Brightness.dark
+                  ? Colors.grey.shade400
+                  : Colors.grey.shade600,
               fontSize: 12,
             ),
           ),
@@ -695,7 +732,9 @@ class ChefProfileScreen extends ConsumerWidget {
           Text(
             value,
             style: TextStyle(
-              color: Colors.grey.shade900,
+              color: theme.brightness == Brightness.dark
+                  ? Colors.white
+                  : Colors.grey.shade900,
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),

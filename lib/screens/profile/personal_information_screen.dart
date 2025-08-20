@@ -184,14 +184,29 @@ class _PersonalInformationScreenState extends ConsumerState<PersonalInformationS
               TextFormField(
                 controller: _firstNameController,
                 enabled: _isEditing,
+                style: TextStyle(
+                  color: theme.brightness == Brightness.dark ? Colors.white : Colors.black,
+                ),
                 decoration: InputDecoration(
                   labelText: 'Fornavn',
-                  prefixIcon: const Icon(Icons.person_outline),
+                  labelStyle: TextStyle(
+                    color: theme.brightness == Brightness.dark 
+                        ? theme.colorScheme.primary 
+                        : null,
+                  ),
+                  prefixIcon: Icon(
+                    Icons.person_outline,
+                    color: theme.brightness == Brightness.dark 
+                        ? theme.colorScheme.primary 
+                        : null,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                   filled: true,
-                  fillColor: _isEditing ? Colors.white : Colors.grey.shade100,
+                  fillColor: _isEditing 
+                      ? (theme.brightness == Brightness.dark ? theme.colorScheme.surface : Colors.white)
+                      : (theme.brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade100),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -207,14 +222,29 @@ class _PersonalInformationScreenState extends ConsumerState<PersonalInformationS
               TextFormField(
                 controller: _lastNameController,
                 enabled: _isEditing,
+                style: TextStyle(
+                  color: theme.brightness == Brightness.dark ? Colors.white : Colors.black,
+                ),
                 decoration: InputDecoration(
                   labelText: 'Efternavn',
-                  prefixIcon: const Icon(Icons.person_outline),
+                  labelStyle: TextStyle(
+                    color: theme.brightness == Brightness.dark 
+                        ? theme.colorScheme.primary 
+                        : null,
+                  ),
+                  prefixIcon: Icon(
+                    Icons.person_outline,
+                    color: theme.brightness == Brightness.dark 
+                        ? theme.colorScheme.primary 
+                        : null,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                   filled: true,
-                  fillColor: _isEditing ? Colors.white : Colors.grey.shade100,
+                  fillColor: _isEditing 
+                      ? (theme.brightness == Brightness.dark ? theme.colorScheme.surface : Colors.white)
+                      : (theme.brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade100),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -231,14 +261,29 @@ class _PersonalInformationScreenState extends ConsumerState<PersonalInformationS
                 controller: _emailController,
                 enabled: _isEditing,
                 keyboardType: TextInputType.emailAddress,
+                style: TextStyle(
+                  color: theme.brightness == Brightness.dark ? Colors.white : Colors.black,
+                ),
                 decoration: InputDecoration(
                   labelText: 'Email',
-                  prefixIcon: const Icon(Icons.email_outlined),
+                  labelStyle: TextStyle(
+                    color: theme.brightness == Brightness.dark 
+                        ? theme.colorScheme.primary 
+                        : null,
+                  ),
+                  prefixIcon: Icon(
+                    Icons.email_outlined,
+                    color: theme.brightness == Brightness.dark 
+                        ? theme.colorScheme.primary 
+                        : null,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                   filled: true,
-                  fillColor: _isEditing ? Colors.white : Colors.grey.shade100,
+                  fillColor: _isEditing 
+                      ? (theme.brightness == Brightness.dark ? theme.colorScheme.surface : Colors.white)
+                      : (theme.brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade100),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -258,14 +303,29 @@ class _PersonalInformationScreenState extends ConsumerState<PersonalInformationS
                 controller: _phoneController,
                 enabled: _isEditing,
                 keyboardType: TextInputType.phone,
+                style: TextStyle(
+                  color: theme.brightness == Brightness.dark ? Colors.white : Colors.black,
+                ),
                 decoration: InputDecoration(
                   labelText: 'Telefonnummer',
-                  prefixIcon: const Icon(Icons.phone_outlined),
+                  labelStyle: TextStyle(
+                    color: theme.brightness == Brightness.dark 
+                        ? theme.colorScheme.primary 
+                        : null,
+                  ),
+                  prefixIcon: Icon(
+                    Icons.phone_outlined,
+                    color: theme.brightness == Brightness.dark 
+                        ? theme.colorScheme.primary 
+                        : null,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                   filled: true,
-                  fillColor: _isEditing ? Colors.white : Colors.grey.shade100,
+                  fillColor: _isEditing 
+                      ? (theme.brightness == Brightness.dark ? theme.colorScheme.surface : Colors.white)
+                      : (theme.brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade100),
                 ),
                 validator: (value) {
                   if (value != null && value.isNotEmpty) {
@@ -315,21 +375,35 @@ class _PersonalInformationScreenState extends ConsumerState<PersonalInformationS
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
+                    color: theme.brightness == Brightness.dark
+                        ? Colors.blue.shade900.withOpacity(0.3)
+                        : Colors.blue.shade50,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.blue.shade200),
+                    border: Border.all(
+                      color: theme.brightness == Brightness.dark
+                          ? Colors.blue.shade700
+                          : Colors.blue.shade200,
+                    ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
+                          Icon(
+                            Icons.info_outline, 
+                            color: theme.brightness == Brightness.dark
+                                ? Colors.blue.shade300
+                                : Colors.blue.shade700,
+                            size: 20,
+                          ),
                           const SizedBox(width: 8),
                           Text(
                             'Kontooplysninger',
                             style: TextStyle(
-                              color: Colors.blue.shade700,
+                              color: theme.brightness == Brightness.dark
+                                  ? Colors.blue.shade300
+                                  : Colors.blue.shade700,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -339,7 +413,9 @@ class _PersonalInformationScreenState extends ConsumerState<PersonalInformationS
                       Text(
                         'Din email bruges til at logge ind og modtage vigtige beskeder om dine bookinger.',
                         style: TextStyle(
-                          color: Colors.blue.shade700,
+                          color: theme.brightness == Brightness.dark
+                              ? Colors.blue.shade300
+                              : Colors.blue.shade700,
                           fontSize: 14,
                         ),
                       ),
@@ -347,7 +423,9 @@ class _PersonalInformationScreenState extends ConsumerState<PersonalInformationS
                       Text(
                         'Dit telefonnummer bruges til at kontakte dig i forbindelse med bookinger.',
                         style: TextStyle(
-                          color: Colors.blue.shade700,
+                          color: theme.brightness == Brightness.dark
+                              ? Colors.blue.shade300
+                              : Colors.blue.shade700,
                           fontSize: 14,
                         ),
                       ),

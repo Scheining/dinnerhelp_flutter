@@ -99,9 +99,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 pinned: true,
                 floating: false,
                 toolbarHeight: 60,
-                backgroundColor: Theme.of(context).brightness == Brightness.light
-                    ? Colors.white
-                    : Theme.of(context).colorScheme.surfaceContainerHighest,
+                backgroundColor: Theme.of(context).brightness == Brightness.dark
+                    ? Theme.of(context).appBarTheme.backgroundColor
+                    : Colors.white,
                 surfaceTintColor: Colors.transparent,
                 scrolledUnderElevation: 0,
                 elevation: 0,
@@ -485,7 +485,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 children: [
                   Expanded(
                     child: Text(
-                      'Topbedømte ledige',
+                      'Topbedømte ledige kokke',
                       style: theme.textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
@@ -521,13 +521,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
           
           // Dish sections divider
-          SliverToBoxAdapter(child: SizedBox(height: AppSpacing.betweenSectionsLarge)),
-          SliverToBoxAdapter(
-            child: Container(
-              height: 8,
-              color: Colors.grey.shade100,
-            ),
-          ),
           SliverToBoxAdapter(child: SizedBox(height: AppSpacing.betweenSectionsLarge)),
           
           // Newest dishes section
@@ -782,7 +775,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           
           // Animated condensed cuisine selector overlay (directly attached to app bar)
           Positioned(
-            top: MediaQuery.of(context).padding.top + 59, // Position right below the app bar
+            top: MediaQuery.of(context).padding.top + 59.5, // Slight overlap to prevent gap
             left: 0,
             right: 0,
             child: _buildAnimatedCuisineSelector(),
@@ -818,15 +811,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     
     return Transform.translate(
       offset: Offset(0, -50 * (1 - progress)), // Slide down from top
-      child: Opacity(
-        opacity: progress,
-        child: Container(
-          height: 50,
-          decoration: BoxDecoration(
-            color: Theme.of(context).brightness == Brightness.light
-                ? Colors.white
-                : Theme.of(context).colorScheme.surfaceContainerHighest,
+      child: Container(
+        height: 50,
+        decoration: BoxDecoration(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Theme.of(context).appBarTheme.backgroundColor
+              : Colors.white,
+          border: Border(
+            top: BorderSide(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Theme.of(context).appBarTheme.backgroundColor ?? const Color(0xFF282D2E)
+                  : Colors.white,
+              width: 1,
+            ),
           ),
+        ),
+        child: Opacity(
+          opacity: progress,
           child: CondensedCuisineSelector(
             cuisines: _cuisines,
             selectedCuisine: _selectedCuisine,
@@ -1202,6 +1203,9 @@ class _AvailabilityChefCard extends ConsumerWidget {
                               result.chef.name,
                               style: theme.textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.w600,
+                                color: theme.brightness == Brightness.dark 
+                                    ? Colors.white 
+                                    : theme.colorScheme.onSurface,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -1227,7 +1231,9 @@ class _AvailabilityChefCard extends ConsumerWidget {
                           ? result.chef.bio
                           : 'Passioneret kok med erfaring i at skabe uforglemmelige madoplevelser.',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: Colors.grey.shade700,
+                          color: theme.brightness == Brightness.dark 
+                              ? Colors.grey.shade400  // Light gray for dark mode
+                              : Colors.grey.shade700,  // Dark gray for light mode
                           height: 1.3,
                         ),
                         maxLines: 4, // Increased to show more bio text
@@ -1252,6 +1258,9 @@ class _AvailabilityChefCard extends ConsumerWidget {
                               result.chef.rating.toStringAsFixed(1),
                               style: theme.textTheme.bodySmall?.copyWith(
                                 fontWeight: FontWeight.w600,
+                                color: theme.brightness == Brightness.dark 
+                                    ? Colors.white 
+                                    : theme.colorScheme.onSurface,
                               ),
                             ),
                           ] else

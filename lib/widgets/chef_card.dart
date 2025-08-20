@@ -24,13 +24,14 @@ class ChefCard extends StatelessWidget {
   }
 
   Widget _buildCompactCard(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       width: 280,
       margin: const EdgeInsets.only(right: 12),
       child: Card(
         elevation: 4,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        color: Colors.white,
+        color: theme.brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white,
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(16),
@@ -71,10 +72,12 @@ class ChefCard extends StatelessWidget {
                       children: [
                         Text(
                           chef.name,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF292E31),
+                            color: theme.brightness == Brightness.dark 
+                                ? Colors.white 
+                                : const Color(0xFF292E31),
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -88,7 +91,9 @@ class ChefCard extends StatelessWidget {
                                 Text(
                                   '${chef.rating} (${chef.reviewCount})',
                                   style: TextStyle(
-                                    color: Colors.grey.shade600,
+                                    color: theme.brightness == Brightness.dark 
+                                        ? Colors.grey.shade400 
+                                        : Colors.grey.shade600,
                                     fontSize: 12,
                                   ),
                                 ),
@@ -116,14 +121,18 @@ class ChefCard extends StatelessWidget {
                               Icon(
                                 Icons.location_on,
                                 size: 14,
-                                color: Colors.grey.shade600,
+                                color: theme.brightness == Brightness.dark 
+                                    ? Colors.grey.shade400 
+                                    : Colors.grey.shade600,
                               ),
                               const SizedBox(width: 4),
                               Expanded(
                                 child: Text(
                                   PostalCodeMapper.formatLocation(chef.location),
                                   style: TextStyle(
-                                    color: Colors.grey.shade600,
+                                    color: theme.brightness == Brightness.dark 
+                                        ? Colors.grey.shade400 
+                                        : Colors.grey.shade600,
                                     fontSize: 12,
                                   ),
                                   maxLines: 1,
@@ -214,11 +223,12 @@ class ChefCard extends StatelessWidget {
   }
 
   Widget _buildFullCard(BuildContext context) {
+    final theme = Theme.of(context);
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: Colors.white,
+      color: theme.brightness == Brightness.dark ? theme.colorScheme.surface : Colors.white,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
@@ -332,10 +342,12 @@ class ChefCard extends StatelessWidget {
                 children: [
                   Text(
                     chef.name,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF292E31),
+                      color: theme.brightness == Brightness.dark 
+                          ? Colors.white 
+                          : const Color(0xFF292E31),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -347,7 +359,9 @@ class ChefCard extends StatelessWidget {
                           Text(
                             '${chef.rating} (${chef.reviewCount} anmeldelser)',
                             style: TextStyle(
-                              color: Colors.grey.shade600,
+                              color: theme.brightness == Brightness.dark 
+                                  ? Colors.grey.shade400 
+                                  : Colors.grey.shade600,
                               fontSize: 14,
                             ),
                           ),
@@ -384,13 +398,17 @@ class ChefCard extends StatelessWidget {
                         Icon(
                           Icons.location_on,
                           size: 18,
-                          color: Colors.grey.shade600,
+                          color: theme.brightness == Brightness.dark 
+                              ? Colors.grey.shade400 
+                              : Colors.grey.shade600,
                         ),
                         const SizedBox(width: 6),
                         Text(
                           '${PostalCodeMapper.formatLocation(chef.location)} • ${chef.distanceKm.toStringAsFixed(1)} km away',
                           style: TextStyle(
-                            color: Colors.grey.shade600,
+                            color: theme.brightness == Brightness.dark 
+                                ? Colors.grey.shade400 
+                                : Colors.grey.shade600,
                             fontSize: 14,
                           ),
                         ),
