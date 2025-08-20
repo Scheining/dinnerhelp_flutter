@@ -36,6 +36,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get seeAll => 'See all';
 
   @override
+  String get featuredChefs => 'Featured Chefs';
+
+  @override
   String get bookChef => 'Book Chef';
 
   @override
@@ -216,5 +219,91 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String daysAgo(int count) {
     return '${count}d';
+  }
+
+  @override
+  String get notificationPreferences => 'Notification Preferences';
+
+  @override
+  String get notifications => 'Notifications';
+
+  @override
+  String get myBookings => 'My Bookings';
+
+  @override
+  String get upcomingTab => 'Upcoming';
+
+  @override
+  String get pastTab => 'Past';
+
+  @override
+  String get cancelledTab => 'Cancelled';
+
+  @override
+  String get viewDetails => 'View Details';
+
+  @override
+  String get cancelBooking => 'Cancel';
+
+  @override
+  String get cancelBookingTitle => 'Cancel Booking';
+
+  @override
+  String get cancelBookingConfirmation =>
+      'Are you sure you want to cancel this booking?';
+
+  @override
+  String get keepBooking => 'Keep Booking';
+
+  @override
+  String get yesCancel => 'Yes, Cancel';
+
+  @override
+  String get bookingCancelledSuccess =>
+      'Booking cancelled and refund initiated';
+
+  @override
+  String get errorCancellingBooking => 'Error cancelling';
+
+  @override
+  String get tryAgain => 'Try Again';
+
+  @override
+  String get errorLoadingBookings => 'Error loading bookings';
+
+  @override
+  String get refundNotice =>
+      'Note: You will receive a full refund as there are more than 48 hours until the booking.';
+
+  @override
+  String get findYourNextChef => 'Find your next dining experience';
+
+  @override
+  String get startExploring => 'Explore Chefs';
+
+  @override
+  String get bookingStatus => 'Status';
+
+  @override
+  String get pending => 'Pending';
+
+  @override
+  String get confirmed => 'Confirmed';
+
+  @override
+  String get completed => 'Completed';
+
+  @override
+  String get inProgress => 'In Progress';
+
+  @override
+  String get disputed => 'Disputed';
+
+  @override
+  String get refunded => 'Refunded';
+
+  @override
+  String guestCount(int count) {
+    return '$count guests';
   }
 }

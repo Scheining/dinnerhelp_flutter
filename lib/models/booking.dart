@@ -4,6 +4,18 @@ enum BookingStatus {
   inProgress,
   completed,
   cancelled,
+  disputed,
+  refunded,
+}
+
+enum PaymentStatus {
+  pending,
+  authorized,
+  succeeded,
+  failed,
+  refunded,
+  partiallyRefunded,
+  disputed,
 }
 
 class Booking {
@@ -19,6 +31,8 @@ class Booking {
   final double tax;
   final double totalPrice;
   final BookingStatus status;
+  final PaymentStatus paymentStatus;
+  final String? stripePaymentIntentId;
   final String? notes;
   final DateTime createdAt;
 
@@ -35,6 +49,8 @@ class Booking {
     required this.tax,
     required this.totalPrice,
     required this.status,
+    required this.paymentStatus,
+    this.stripePaymentIntentId,
     this.notes,
     required this.createdAt,
   });
@@ -51,6 +67,29 @@ class Booking {
         return 'Completed';
       case BookingStatus.cancelled:
         return 'Cancelled';
+      case BookingStatus.disputed:
+        return 'Disputed';
+      case BookingStatus.refunded:
+        return 'Refunded';
+    }
+  }
+
+  String get paymentStatusText {
+    switch (paymentStatus) {
+      case PaymentStatus.pending:
+        return 'Payment Pending';
+      case PaymentStatus.authorized:
+        return 'Payment Authorized';
+      case PaymentStatus.succeeded:
+        return 'Payment Complete';
+      case PaymentStatus.failed:
+        return 'Payment Failed';
+      case PaymentStatus.refunded:
+        return 'Refunded';
+      case PaymentStatus.partiallyRefunded:
+        return 'Partially Refunded';
+      case PaymentStatus.disputed:
+        return 'Under Dispute';
     }
   }
 
@@ -69,6 +108,8 @@ class Booking {
         tax: 495.0,
         totalPrice: 2475.0,
         status: BookingStatus.confirmed,
+        paymentStatus: PaymentStatus.authorized,
+        stripePaymentIntentId: 'pi_1234567890abcdef',
         notes: 'Please prepare vegetarian options for 2 guests',
         createdAt: DateTime.now().subtract(const Duration(days: 1)),
       ),
@@ -85,6 +126,7 @@ class Booking {
         tax: 264.0,
         totalPrice: 1320.0,
         status: BookingStatus.pending,
+        paymentStatus: PaymentStatus.pending,
         createdAt: DateTime.now().subtract(const Duration(hours: 2)),
       ),
       Booking(
@@ -100,6 +142,8 @@ class Booking {
         tax: 660.0,
         totalPrice: 3300.0,
         status: BookingStatus.completed,
+        paymentStatus: PaymentStatus.succeeded,
+        stripePaymentIntentId: 'pi_0987654321fedcba',
         notes: 'Amazing Italian dinner for anniversary celebration',
         createdAt: DateTime.now().subtract(const Duration(days: 5)),
       ),

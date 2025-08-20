@@ -1,199 +1,380 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:homechef/models/chef.dart';
 import 'package:homechef/models/cuisine.dart';
 import 'package:homechef/widgets/chef_card.dart';
 import 'package:homechef/widgets/category_chip.dart';
 import 'package:homechef/screens/chef_profile_screen.dart';
+import 'package:homechef/features/search/presentation/providers/search_providers.dart';
+import 'package:homechef/features/search/domain/entities/search_filters.dart' as search_entities;
+import 'package:homechef/features/search/domain/entities/chef_search_result.dart';
+import 'package:homechef/features/search/presentation/widgets/stepped_date_time_selector.dart';
+import 'package:homechef/features/search/presentation/widgets/advanced_filters_sheet.dart';
+import 'package:homechef/providers/location_providers.dart';
+import 'package:homechef/providers/favorites_provider.dart';
 
-class SearchScreen extends StatefulWidget {
+class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
 
   @override
-  State<SearchScreen> createState() => _SearchScreenState();
+  ConsumerState<SearchScreen> createState() => _SearchScreenState();
 }
 
-class _SearchScreenState extends State<SearchScreen> {
+class _SearchScreenState extends ConsumerState<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
-  final List<Chef> _allChefs = Chef.getSampleChefs();
   final List<Cuisine> _cuisines = Cuisine.getAllCuisines();
-  
-  List<Chef> _filteredChefs = [];
-  String? _selectedCuisine;
-  double _maxPrice = 500.0;
-  bool _verifiedOnly = false;
-  bool _availableOnly = false;
-  String _sortBy = 'rating'; // 'rating', 'distance', 'price'
 
   @override
   void initState() {
     super.initState();
-    _filteredChefs = List.from(_allChefs);
+    // Note: We'll initialize from search filters in the build method
   }
 
-  void _applyFilters() {
-    setState(() {
-      _filteredChefs = _allChefs.where((chef) {
-        // Search text filter
-        final searchText = _searchController.text.toLowerCase();
-        final nameMatch = chef.name.toLowerCase().contains(searchText);
-        final cuisineMatch = chef.cuisineTypes.any((cuisine) => 
-            cuisine.toLowerCase().contains(searchText));
-        final locationMatch = chef.location.toLowerCase().contains(searchText);
-        
-        if (searchText.isNotEmpty && !nameMatch && !cuisineMatch && !locationMatch) {
-          return false;
-        }
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
-        // Cuisine filter
-        if (_selectedCuisine != null && 
-            !chef.cuisineTypes.contains(_selectedCuisine)) {
-          return false;
-        }
+  void _updateSearchText(String text) {
+    ref.read(searchFiltersProvider.notifier).updateSearchText(
+      text.isEmpty ? null : text,
+    );
+  }
 
-        // Price filter
-        if (chef.hourlyRate > _maxPrice) return false;
+  void _updateCuisineFilter(String? cuisine) {
+    final currentFilters = ref.read(searchFiltersProvider);
+    final currentCuisines = currentFilters.cuisineTypes ?? [];
+    
+    List<String>? newCuisines;
+    if (cuisine != null) {
+      if (currentCuisines.contains(cuisine)) {
+        newCuisines = currentCuisines.where((c) => c != cuisine).toList();
+        if (newCuisines.isEmpty) newCuisines = null;
+      } else {
+        newCuisines = [...currentCuisines, cuisine];
+      }
+    }
+    
+    ref.read(searchFiltersProvider.notifier).updateCuisineTypes(newCuisines);
+  }
 
-        // Verified filter
-        if (_verifiedOnly && !chef.isVerified) return false;
+  void _showDateTimePicker() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const SteppedDateTimeSelector(),
+    );
+  }
 
-        // Available filter
-        if (_availableOnly && !chef.isAvailable) return false;
-
-        return true;
-      }).toList();
-
-      // Apply sorting
-      _filteredChefs.sort((a, b) {
-        switch (_sortBy) {
-          case 'rating':
-            return b.rating.compareTo(a.rating);
-          case 'distance':
-            return a.distanceKm.compareTo(b.distanceKm);
-          case 'price':
-            return a.hourlyRate.compareTo(b.hourlyRate);
-          default:
-            return 0;
-        }
-      });
-    });
+  void _showAdvancedFilters() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const AdvancedFiltersSheet(),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final currentFilters = ref.watch(searchFiltersProvider);
+    final searchResultsAsync = ref.watch(searchResultsProvider);
+    final hasActiveSearch = ref.watch(hasActiveSearchProvider);
+    final searchSummary = ref.watch(searchSummaryProvider);
 
     return Scaffold(
+      backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
         title: Text(
-          'Find Chefs',
-          style: theme.textTheme.headlineSmall?.copyWith(
+          'Find kokke',
+          style: theme.textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.bold,
+            color: Colors.black,
           ),
         ),
-        backgroundColor: theme.colorScheme.surface,
+        centerTitle: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.tune),
-            onPressed: _showFilterBottomSheet,
+            icon: Icon(
+              Icons.schedule,
+              color: currentFilters.hasAvailabilityFilters 
+                  ? theme.colorScheme.primary 
+                  : Colors.black,
+            ),
+            onPressed: _showDateTimePicker,
+            tooltip: 'Select date & time',
+          ),
+          IconButton(
+            icon: Icon(
+              Icons.tune,
+              color: hasActiveSearch 
+                  ? theme.colorScheme.primary 
+                  : Colors.black,
+            ),
+            onPressed: _showAdvancedFilters,
+            tooltip: 'More filters',
           ),
         ],
       ),
       body: Column(
-        children: [
-          // Search Bar
-          Padding(
-            padding: const EdgeInsets.all(16),
+          children: [
+          // Enhanced Search Bar with modern design
+          Container(
+            margin: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: theme.colorScheme.primary.withOpacity(0.08),
+                  blurRadius: 20,
+                  offset: const Offset(0, 4),
+                  spreadRadius: 0,
+                ),
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                  spreadRadius: 0,
+                ),
+              ],
+            ),
             child: TextField(
               controller: _searchController,
+              style: theme.textTheme.bodyLarge?.copyWith(
+                fontWeight: FontWeight.w500,
+                letterSpacing: 0.2,
+              ),
               decoration: InputDecoration(
-                hintText: 'Search chefs, cuisines, or locations...',
-                prefixIcon: Icon(
-                  Icons.search,
-                  color: Colors.grey.shade600,
+                hintText: 'Søg kokke, køkkener eller lokationer...',
+                hintStyle: TextStyle(
+                  color: Colors.grey.shade500,
+                  fontWeight: FontWeight.w400,
+                  fontSize: 15,
+                  letterSpacing: 0.3,
+                ),
+                prefixIcon: Container(
+                  padding: const EdgeInsets.only(left: 4),
+                  child: Icon(
+                    Icons.search_rounded,
+                    color: _searchController.text.isNotEmpty 
+                        ? theme.colorScheme.primary 
+                        : Colors.grey.shade500,
+                    size: 24,
+                  ),
                 ),
                 suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          _searchController.clear();
-                          _applyFilters();
-                        },
+                    ? Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(20),
+                            onTap: () {
+                              _searchController.clear();
+                              _updateSearchText('');
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              child: Icon(
+                                Icons.close_rounded,
+                                color: Colors.grey.shade600,
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                        ),
                       )
-                    : null,
+                    : _searchController.text.isEmpty && currentFilters.hasFilters
+                        ? Container(
+                            margin: const EdgeInsets.only(right: 12),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primary.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 6,
+                                  height: 6,
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.primary,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Filtre aktive',
+                                  style: TextStyle(
+                                    color: theme.colorScheme.primary,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : null,
+                filled: true,
+                fillColor: theme.brightness == Brightness.light 
+                    ? Colors.white 
+                    : theme.colorScheme.surface,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(
+                    color: theme.brightness == Brightness.light
+                        ? Colors.grey.shade200
+                        : theme.colorScheme.outline.withOpacity(0.1),
+                    width: 1.5,
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(
+                    color: theme.brightness == Brightness.light
+                        ? Colors.grey.shade200
+                        : theme.colorScheme.outline.withOpacity(0.1),
+                    width: 1.5,
+                  ),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: theme.colorScheme.primary),
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(
+                    color: theme.colorScheme.primary,
+                    width: 2,
+                  ),
                 ),
               ),
-              onChanged: (value) => _applyFilters(),
+              onChanged: _updateSearchText,
             ),
           ),
+
+          // Combined filter summary with enhanced design
+          if (currentFilters.hasAvailabilityFilters || hasActiveSearch)
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: _showDateTimePicker,
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceVariant.withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: theme.colorScheme.outline.withOpacity(0.2),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Icon(
+                            currentFilters.hasAvailabilityFilters ? Icons.event : Icons.tune,
+                            size: 16,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            currentFilters.hasAvailabilityFilters 
+                              ? _getAvailabilityTextDanish(currentFilters)
+                              : searchSummary,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onSurface,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surface,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: InkWell(
+                            onTap: () {
+                              if (currentFilters.hasAvailabilityFilters) {
+                                ref.read(searchFiltersProvider.notifier).updateDate(null);
+                                ref.read(searchFiltersProvider.notifier).updateStartTime(null);
+                                ref.read(searchFiltersProvider.notifier).updateDuration(null);
+                                ref.read(searchFiltersProvider.notifier).updateNumberOfGuests(null);
+                              } else {
+                                ref.read(searchFiltersProvider.notifier).clearFilters();
+                                _searchController.clear();
+                              }
+                            },
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Ryd',
+                                  style: TextStyle(
+                                    color: theme.colorScheme.primary,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Icon(
+                                  Icons.close,
+                                  size: 14,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
           
           // Cuisine Filters
           SizedBox(
-            height: 50,
+            height: 110,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               itemCount: _cuisines.length,
               itemBuilder: (context, index) {
                 final cuisine = _cuisines[index];
+                final isSelected = currentFilters.cuisineTypes?.contains(cuisine.name) ?? false;
                 return CategoryChip(
                   cuisine: cuisine,
-                  isSelected: _selectedCuisine == cuisine.name,
-                  onTap: () {
-                    setState(() {
-                      _selectedCuisine = _selectedCuisine == cuisine.name ? null : cuisine.name;
-                    });
-                    _applyFilters();
-                  },
+                  isSelected: isSelected,
+                  onTap: () => _updateCuisineFilter(cuisine.name),
                 );
               },
             ),
           ),
           
-          // Sort & Filter Info
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              children: [
-                Text(
-                  '${_filteredChefs.length} chefs found',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-                const Spacer(),
-                DropdownButton<String>(
-                  value: _sortBy,
-                  underline: const SizedBox(),
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.primary,
-                  ),
-                  items: const [
-                    DropdownMenuItem(value: 'rating', child: Text('Sort by Rating')),
-                    DropdownMenuItem(value: 'distance', child: Text('Sort by Distance')),
-                    DropdownMenuItem(value: 'price', child: Text('Sort by Price')),
-                  ],
-                  onChanged: (value) {
-                    setState(() {
-                      _sortBy = value ?? 'rating';
-                    });
-                    _applyFilters();
-                  },
-                ),
-              ],
-            ),
-          ),
-          
-          // Results
+          // Search Results
           Expanded(
-            child: _filteredChefs.isEmpty
-                ? Center(
+            child: searchResultsAsync.when(
+              data: (results) {
+                if (results.isEmpty) {
+                  return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -204,146 +385,605 @@ class _SearchScreenState extends State<SearchScreen> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'No chefs found',
+                          'Ingen kokke fundet',
                           style: theme.textTheme.titleMedium?.copyWith(
                             color: Colors.grey.shade600,
                           ),
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Try adjusting your search or filters',
+                          'Prøv at justere din søgning eller filtre',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: Colors.grey.shade500,
                           ),
                         ),
                       ],
                     ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.only(bottom: 100),
-                    itemCount: _filteredChefs.length,
-                    itemBuilder: (context, index) {
-                      final chef = _filteredChefs[index];
-                      return ChefCard(
-                        chef: chef,
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ChefProfileScreen(chef: chef),
+                  );
+                }
+
+                return Column(
+                  children: [
+                    // Results count and sort options
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              '${results.length} kokke fundet',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: Colors.grey.shade600,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: DropdownButton<String>(
+                              value: currentFilters.sortBy,
+                              underline: const SizedBox(),
+                              isExpanded: false,
+                              isDense: true,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.primary,
+                              ),
+                              items: const [
+                                DropdownMenuItem(value: 'rating', child: Text('Bedømmelse')),
+                                DropdownMenuItem(value: 'distance', child: Text('Afstand')),
+                                DropdownMenuItem(value: 'price', child: Text('Pris')),
+                                DropdownMenuItem(value: 'availability', child: Text('Tilgængelig')),
+                              ],
+                              onChanged: (value) {
+                                if (value != null) {
+                                  ref.read(searchFiltersProvider.notifier).updateSorting(value, false);
+                                }
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Chef results list - horizontal scrollable cards like home screen
+                    Expanded(
+                      child: ListView.builder(
+                        padding: const EdgeInsets.only(bottom: 120, left: 16, right: 16),
+                        itemCount: results.length,
+                        itemBuilder: (context, index) {
+                          final result = results[index];
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: _AvailabilityChefCard(
+                              result: result,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ChefProfileScreen(chef: result.chef),
+                                  ),
+                                );
+                              },
                             ),
                           );
                         },
-                      );
-                    },
+                      ),
+                    ),
+                  ],
+                );
+              },
+              loading: () => const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(32.0),
+                  child: CircularProgressIndicator(),
+                ),
+              ),
+              error: (error, stack) => Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(32.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        size: 80,
+                        color: Colors.red.shade400,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Fejl ved indlæsning af kokke',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: Colors.red.shade600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        error.toString(),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: Colors.grey.shade500,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      OutlinedButton(
+                        onPressed: () {
+                          ref.invalidate(searchResultsProvider);
+                        },
+                        child: const Text('Prøv igen'),
+                      ),
+                    ],
                   ),
+                ),
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  void _showFilterBottomSheet() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) => Container(
-          padding: const EdgeInsets.all(24),
+  String _getAvailabilityText(search_entities.SearchFilters filters) {
+    final List<String> parts = [];
+    
+    if (filters.date != null) {
+      final date = filters.date!;
+      final today = DateTime.now();
+      if (date.day == today.day && date.month == today.month && date.year == today.year) {
+        parts.add('Today');
+      } else {
+        parts.add('${date.day}/${date.month}/${date.year}');
+      }
+    }
+    
+    if (filters.startTime != null) {
+      parts.add('at ${filters.startTime}');
+    }
+    
+    if (filters.duration != null) {
+      final hours = filters.duration!.inHours;
+      final minutes = filters.duration!.inMinutes % 60;
+      if (hours > 0 && minutes > 0) {
+        parts.add('for ${hours}h ${minutes}m');
+      } else if (hours > 0) {
+        parts.add('for ${hours}h');
+      } else {
+        parts.add('for ${minutes}m');
+      }
+    }
+    
+    if (filters.numberOfGuests != null) {
+      parts.add('${filters.numberOfGuests} guests');
+    }
+    
+    return parts.isEmpty ? 'Custom availability' : parts.join(' ');
+  }
+
+  String _getAvailabilityTextDanish(search_entities.SearchFilters filters) {
+    final List<String> parts = [];
+    
+    if (filters.date != null) {
+      final date = filters.date!;
+      final today = DateTime.now();
+      final tomorrow = today.add(const Duration(days: 1));
+      
+      if (date.day == today.day && date.month == today.month && date.year == today.year) {
+        parts.add('I dag');
+      } else if (date.day == tomorrow.day && date.month == tomorrow.month && date.year == tomorrow.year) {
+        parts.add('I morgen');
+      } else {
+        parts.add('${date.day}/${date.month}/${date.year}');
+      }
+    }
+    
+    if (filters.startTime != null) {
+      parts.add('kl. ${filters.startTime}');
+    }
+    
+    if (filters.duration != null) {
+      final hours = filters.duration!.inHours;
+      final minutes = filters.duration!.inMinutes % 60;
+      if (hours > 0 && minutes > 0) {
+        parts.add('i ${hours}t ${minutes}m');
+      } else if (hours > 0) {
+        parts.add('i ${hours}t');
+      } else {
+        parts.add('i ${minutes}m');
+      }
+    }
+    
+    if (filters.numberOfGuests != null) {
+      parts.add('${filters.numberOfGuests} ${filters.numberOfGuests == 1 ? "person" : "personer"}');
+    }
+    
+    return parts.isEmpty ? 'Tilpasset tidspunkt' : parts.join(' ');
+  }
+}
+
+class _AvailabilityChefCard extends ConsumerWidget {
+  final ChefSearchResult result;
+  final VoidCallback onTap;
+
+  const _AvailabilityChefCard({
+    required this.result,
+    required this.onTap,
+  });
+
+  String _translateCuisine(String cuisine) {
+    // Handle case-insensitive matching
+    final cuisineLower = cuisine.toLowerCase();
+    final Map<String, String> translations = {
+      'italian': 'Italiensk',
+      'french': 'Fransk',
+      'asian': 'Asiatisk',
+      'japanese': 'Japansk',
+      'chinese': 'Kinesisk',
+      'thai': 'Thai',
+      'indian': 'Indisk',
+      'mexican': 'Mexicansk',
+      'spanish': 'Spansk',
+      'greek': 'Græsk',
+      'mediterranean': 'Middelhavs',
+      'nordic': 'Nordisk',
+      'danish': 'Dansk',
+      'american': 'Amerikansk',
+      'bbq': 'BBQ',
+      'seafood': 'Fisk & Skaldyr',
+      'vegetarian': 'Vegetarisk',
+      'vegan': 'Vegansk',
+      'fusion': 'Fusion',
+      'middle eastern': 'Mellemøstlig',
+      'korean': 'Koreansk',
+      'vietnamese': 'Vietnamesisk',
+      'ethiopian': 'Etiopisk',
+      'caribbean': 'Caribisk',
+      'german': 'Tysk',
+      'british': 'Britisk',
+      'sushi': 'Sushi',
+      'pizza': 'Pizza',
+      'pasta': 'Pasta',
+      'brunch': 'Brunch',
+      'desserts': 'Desserter',
+      'healthy': 'Sundt',
+      'comfort food': 'Comfort mad',
+      'fast food': 'Fast food',
+      'fine dining': 'Fine dining',
+      'street food': 'Street food',
+      'tapas': 'Tapas',
+    };
+    return translations[cuisineLower] ?? cuisine;
+  }
+
+  Color _getCuisineColor(String cuisine) {
+    // Handle case-insensitive matching
+    final cuisineLower = cuisine.toLowerCase();
+    
+    // Match colors from the top cuisine selector gradients
+    final Map<String, Color> colors = {
+      // Italian - Dark green
+      'italian': const Color(0xFF2D6B4F),
+      // French - Purple  
+      'french': const Color(0xFF8E44AD),
+      // Asian cuisines - Blue
+      'asian': const Color(0xFF2980B9),
+      'japanese': const Color(0xFF2980B9),
+      'chinese': const Color(0xFF2980B9),
+      'thai': const Color(0xFF2980B9),
+      'indian': const Color(0xFF2980B9),
+      'korean': const Color(0xFF2980B9),
+      'vietnamese': const Color(0xFF2980B9),
+      // Mediterranean - Olive
+      'mediterranean': const Color(0xFF8D9A42),
+      'greek': const Color(0xFF8D9A42),
+      'spanish': const Color(0xFF8D9A42),
+      'mexican': const Color(0xFF8D9A42),
+      // Nordic - Brown
+      'nordic': const Color(0xFF8B5A3C),
+      // Danish - Light brown
+      'danish': const Color(0xFFA0724C),
+      // Seafood - Teal
+      'seafood': const Color(0xFF4ECDC4),
+      // Vegetarian/Vegan - Green
+      'vegetarian': const Color(0xFF5D8E6A),
+      'vegan': const Color(0xFF5D8E6A),
+      'healthy': const Color(0xFF5D8E6A),
+      // American/BBQ - Brown
+      'american': const Color(0xFF8B5A3C),
+      'bbq': const Color(0xFF8B5A3C),
+      'comfort food': const Color(0xFF8B5A3C),
+      // Middle Eastern - Brown
+      'middle eastern': const Color(0xFF8B5A3C),
+      // Fusion - Purple
+      'fusion': const Color(0xFF8E44AD),
+      // Others
+      'sushi': const Color(0xFF2980B9), // Blue like Asian
+      'pizza': const Color(0xFF2D6B4F), // Green like Italian
+      'pasta': const Color(0xFF2D6B4F), // Green like Italian
+      'brunch': const Color(0xFFA0724C), // Light brown
+      'desserts': const Color(0xFF8E44AD), // Purple
+      'tapas': const Color(0xFF8D9A42), // Olive like Spanish
+    };
+    
+    return colors[cuisineLower] ?? const Color(0xFF8B5A3C); // Default brown
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final isFavorited = ref.watch(isChefFavoritedProvider(result.chef.id));
+
+    return Container(
+      width: double.infinity, // Full width for search page
+      child: Card(
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
+              // Chef header image with availability indicator
+              Stack(
+                clipBehavior: Clip.none, // Allow profile image to overflow
                 children: [
-                  Text(
-                    'Filters',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                    child: Image.network(
+                      result.chef.headerImage,
+                      width: double.infinity,
+                      height: 180, // Increased by 50%
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        width: double.infinity,
+                        height: 180, // Increased by 50%
+                        decoration: const BoxDecoration(
+                          image: DecorationImage(
+                            image: AssetImage('assets/images/logo_brand.png'),
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                  const Spacer(),
-                  TextButton(
-                    onPressed: () {
-                      setModalState(() {
-                        _selectedCuisine = null;
-                        _maxPrice = 500.0;
-                        _verifiedOnly = false;
-                        _availableOnly = false;
-                      });
-                    },
-                    child: const Text('Clear All'),
+                  
+                  // Top right controls - availability and favorite
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Row(
+                      children: [
+                        // Availability indicator
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: result.isAvailable 
+                                ? Colors.green.shade600
+                                : Colors.orange.shade600,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            result.isAvailable ? 'Ledig' : 'Optaget',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // Favorite button
+                        Material(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(20),
+                            onTap: () async {
+                              final notifier = ref.read(favoritesChefsProvider.notifier);
+                              await notifier.toggleFavorite(result.chef.id);
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              child: Icon(
+                                isFavorited ? Icons.favorite : Icons.favorite_border,
+                                color: isFavorited ? Colors.red : Colors.grey.shade600,
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  // Chef profile image
+                  Positioned(
+                    bottom: -40, // Adjusted for larger card
+                    left: 18, // Moved slightly right for larger card
+                    child: Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 3),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(37),
+                        child: Image.network(
+                          result.chef.profileImage,
+                          width: 74, // Adjusted for larger card
+                          height: 74, // Adjusted for larger card
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => Container(
+                            width: 74, // Adjusted for larger card
+                            height: 74, // Adjusted for larger card
+                            color: Theme.of(context).colorScheme.primary,
+                            child: const Icon(Icons.person, size: 20, color: Colors.white),
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
               
-              Text(
-                'Maximum Price per Hour',
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
-              Slider(
-                value: _maxPrice,
-                min: 200,
-                max: 600,
-                divisions: 8,
-                label: '${_maxPrice.round()} DKK',
-                onChanged: (value) {
-                  setModalState(() {
-                    _maxPrice = value;
-                  });
-                },
-              ),
-              
-              const SizedBox(height: 16),
-              
-              CheckboxListTile(
-                title: const Text('Verified Chefs Only'),
-                value: _verifiedOnly,
-                onChanged: (value) {
-                  setModalState(() {
-                    _verifiedOnly = value ?? false;
-                  });
-                },
-                contentPadding: EdgeInsets.zero,
-              ),
-              
-              CheckboxListTile(
-                title: const Text('Available Only'),
-                value: _availableOnly,
-                onChanged: (value) {
-                  setModalState(() {
-                    _availableOnly = value ?? false;
-                  });
-                },
-                contentPadding: EdgeInsets.zero,
-              ),
-              
-              const SizedBox(height: 24),
-              
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Cancel'),
+              // Price positioned to align with bottom of profile image
+              Padding(
+                padding: const EdgeInsets.only(top: 32, right: 20), // Adjusted padding
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    '${result.chef.hourlyRate.toInt()} DKK/time',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: theme.colorScheme.primary,
+                      fontSize: 15,
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        setState(() {}); // Update parent state
-                        _applyFilters();
-                        Navigator.pop(context);
-                      },
-                      child: const Text('Apply Filters'),
+                ),
+              ),
+              
+              const SizedBox(height: 4), // Reduced space after price
+              
+              // Chef info
+              Padding(
+                padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16, top: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    
+                    // Name and verification
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            result.chef.name,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (result.chef.isVerified)
+                          Padding(
+                            padding: const EdgeInsets.only(left: 4),
+                            child: Icon(
+                              Icons.verified,
+                              size: 16,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                      ],
                     ),
-                  ),
-                ],
+                    
+                    const SizedBox(height: 8),
+                    
+                    // Bio preview
+                    Text(
+                      result.chef.bio.isNotEmpty 
+                        ? result.chef.bio
+                        : 'Passioneret kok med erfaring i at skabe uforglemmelige madoplevelser.',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: Colors.grey.shade700,
+                        height: 1.3,
+                      ),
+                      maxLines: 4, // Increased to show more bio text
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    
+                    const SizedBox(height: 12),
+                    
+                    // Bottom row with rating/badge and cuisines
+                    Row(
+                      children: [
+                        if (result.chef.reviewCount > 0) ...[
+                          Icon(
+                            Icons.star,
+                            size: 14,
+                            color: Colors.amber.shade600,
+                          ),
+                          const SizedBox(width: 2),
+                          Text(
+                            result.chef.rating.toStringAsFixed(1),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ] else
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF4CAF50), // Material green
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Text(
+                              'NY',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        
+                        const SizedBox(width: 12), // Increased spacing
+                        
+                        // Cuisine types as badges
+                        Expanded(
+                          child: Wrap(
+                            spacing: 6,
+                            children: result.chef.cuisineTypes.take(2).map((cuisine) {
+                              // Translate cuisine to Danish
+                              final danishCuisine = _translateCuisine(cuisine);
+                              // Get color for the original English cuisine name
+                              final color = _getCuisineColor(cuisine);
+                              
+                              return Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: color,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  danishCuisine,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ],
+                    ),
+                    
+                    // Distance or availability info
+                    if (result.distance != null && result.distance! > 0) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        result.distanceDisplay,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: Colors.grey.shade500,
+                        ),
+                      ),
+                    ] else if (result.availableTimeSlots?.isNotEmpty == true) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        'Ledig kl. ${result.availableTimeSlots!.take(2).join(', ')}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: Colors.green.shade600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ],
+                ),
               ),
             ],
           ),
@@ -352,3 +992,4 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 }
+

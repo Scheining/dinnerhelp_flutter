@@ -43,7 +43,9 @@ class CondensedCuisineSelector extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      cuisine.name,
+                      Localizations.localeOf(context).languageCode == 'da' 
+                          ? cuisine.nameDa 
+                          : cuisine.nameEn,
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,

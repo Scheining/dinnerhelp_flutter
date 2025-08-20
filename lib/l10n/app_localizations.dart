@@ -152,6 +152,12 @@ abstract class AppLocalizations {
   /// **'See all'**
   String get seeAll;
 
+  /// Section title for featured chefs
+  ///
+  /// In en, this message translates to:
+  /// **'Featured Chefs'**
+  String get featuredChefs;
+
   /// Button to book a chef
   ///
   /// In en, this message translates to:
@@ -469,6 +475,168 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count}d'**
   String daysAgo(int count);
+
+  /// Notification preferences page title
+  ///
+  /// In en, this message translates to:
+  /// **'Notification Preferences'**
+  String get notificationPreferences;
+
+  /// Notifications page title
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications'**
+  String get notifications;
+
+  /// My bookings page title
+  ///
+  /// In en, this message translates to:
+  /// **'My Bookings'**
+  String get myBookings;
+
+  /// Upcoming bookings tab
+  ///
+  /// In en, this message translates to:
+  /// **'Upcoming'**
+  String get upcomingTab;
+
+  /// Past bookings tab
+  ///
+  /// In en, this message translates to:
+  /// **'Past'**
+  String get pastTab;
+
+  /// Cancelled bookings tab
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get cancelledTab;
+
+  /// View booking details button
+  ///
+  /// In en, this message translates to:
+  /// **'View Details'**
+  String get viewDetails;
+
+  /// Cancel booking button
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancelBooking;
+
+  /// Cancel booking dialog title
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel Booking'**
+  String get cancelBookingTitle;
+
+  /// Cancel booking confirmation message
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to cancel this booking?'**
+  String get cancelBookingConfirmation;
+
+  /// Keep booking button
+  ///
+  /// In en, this message translates to:
+  /// **'Keep Booking'**
+  String get keepBooking;
+
+  /// Confirm cancellation button
+  ///
+  /// In en, this message translates to:
+  /// **'Yes, Cancel'**
+  String get yesCancel;
+
+  /// Booking cancellation success message
+  ///
+  /// In en, this message translates to:
+  /// **'Booking cancelled and refund initiated'**
+  String get bookingCancelledSuccess;
+
+  /// Error cancelling booking message
+  ///
+  /// In en, this message translates to:
+  /// **'Error cancelling'**
+  String get errorCancellingBooking;
+
+  /// Try again button
+  ///
+  /// In en, this message translates to:
+  /// **'Try Again'**
+  String get tryAgain;
+
+  /// Error loading bookings message
+  ///
+  /// In en, this message translates to:
+  /// **'Error loading bookings'**
+  String get errorLoadingBookings;
+
+  /// Refund notice message
+  ///
+  /// In en, this message translates to:
+  /// **'Note: You will receive a full refund as there are more than 48 hours until the booking.'**
+  String get refundNotice;
+
+  /// Find next chef prompt
+  ///
+  /// In en, this message translates to:
+  /// **'Find your next dining experience'**
+  String get findYourNextChef;
+
+  /// Start exploring button
+  ///
+  /// In en, this message translates to:
+  /// **'Explore Chefs'**
+  String get startExploring;
+
+  /// Booking status label
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get bookingStatus;
+
+  /// Pending booking status
+  ///
+  /// In en, this message translates to:
+  /// **'Pending'**
+  String get pending;
+
+  /// Confirmed booking status
+  ///
+  /// In en, this message translates to:
+  /// **'Confirmed'**
+  String get confirmed;
+
+  /// Completed booking status
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get completed;
+
+  /// In progress booking status
+  ///
+  /// In en, this message translates to:
+  /// **'In Progress'**
+  String get inProgress;
+
+  /// Disputed booking status
+  ///
+  /// In en, this message translates to:
+  /// **'Disputed'**
+  String get disputed;
+
+  /// Refunded booking status
+  ///
+  /// In en, this message translates to:
+  /// **'Refunded'**
+  String get refunded;
+
+  /// Guest count format
+  ///
+  /// In en, this message translates to:
+  /// **'{count} guests'**
+  String guestCount(int count);
 }
 
 class _AppLocalizationsDelegate

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:awesome_bottom_bar/awesome_bottom_bar.dart';
 import 'package:awesome_bottom_bar/widgets/inspired/inspired.dart';
+import 'package:go_router/go_router.dart';
 import 'package:homechef/core/localization/app_localizations_extension.dart';
 import 'package:homechef/screens/home_screen.dart';
 import 'package:homechef/screens/search_screen.dart';
@@ -9,22 +10,52 @@ import 'package:homechef/screens/messages_screen.dart';
 import 'package:homechef/screens/profile_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
-  const MainNavigationScreen({super.key});
+  final Widget? child;
+  
+  const MainNavigationScreen({super.key, this.child});
 
   @override
   State<MainNavigationScreen> createState() => _MainNavigationScreenState();
 }
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
-  int _currentIndex = 0;
+  
+  int _getSelectedIndex(BuildContext context) {
+    final String location = GoRouterState.of(context).uri.toString();
+    
+    if (location == '/') {
+      return 0;
+    } else if (location.startsWith('/search')) {
+      return 1;
+    } else if (location.startsWith('/bookings')) {
+      return 2;
+    } else if (location.startsWith('/messages')) {
+      return 3;
+    } else if (location.startsWith('/profile')) {
+      return 4;
+    }
+    return 0;
+  }
 
-  final List<Widget> _screens = const [
-    HomeScreen(),
-    SearchScreen(),
-    BookingsScreen(),
-    MessagesScreen(),
-    ProfileScreen(),
-  ];
+  void _onItemTapped(BuildContext context, int index) {
+    switch (index) {
+      case 0:
+        context.go('/');
+        break;
+      case 1:
+        context.go('/search');
+        break;
+      case 2:
+        context.go('/bookings');
+        break;
+      case 3:
+        context.go('/messages');
+        break;
+      case 4:
+        context.go('/profile');
+        break;
+    }
+  }
 
   // Define navigation items for awesome_bottom_bar
   List<TabItem> _navigationItems(BuildContext context) => [
@@ -76,9 +107,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final currentIndex = _getSelectedIndex(context);
+    
     return Scaffold(
       extendBody: true, // Allow body content to extend behind navigation bar
-      body: _screens[_currentIndex],
+      body: widget.child,
       bottomNavigationBar: BottomBarInspiredOutside(
         items: _navigationItems(context),
         backgroundColor: Theme.of(context).brightness == Brightness.light
@@ -86,10 +119,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             : Theme.of(context).colorScheme.surfaceContainerHighest, // White for light mode, elevated surface for dark
         color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
         colorSelected: _getSelectedIconColor(context),
-        indexSelected: _currentIndex,
-        onTap: (int index) => setState(() {
-          _currentIndex = index;
-        }),
+        indexSelected: currentIndex,
+        onTap: (int index) => _onItemTapped(context, index),
         top: -25, // Creates the deep outside effect
         animated: true,
         itemStyle: ItemStyle.circle,

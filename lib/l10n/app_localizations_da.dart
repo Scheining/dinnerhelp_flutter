@@ -27,13 +27,16 @@ class AppLocalizationsDa extends AppLocalizations {
   String get profile => 'Profil';
 
   @override
-  String get availableChefsNearYou => 'Tilgængelige kokke i nærheden';
+  String get availableChefsNearYou => 'Kokke i nærheden';
 
   @override
   String get popularChefsInRegion => 'Populære kokke i dit område';
 
   @override
   String get seeAll => 'Se alle';
+
+  @override
+  String get featuredChefs => 'Udvalgte kokke';
 
   @override
   String get bookChef => 'Book kok';
@@ -216,5 +219,91 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String daysAgo(int count) {
     return '${count}d';
+  }
+
+  @override
+  String get notificationPreferences => 'Notifikationsindstillinger';
+
+  @override
+  String get notifications => 'Notifikationer';
+
+  @override
+  String get myBookings => 'Mine bookinger';
+
+  @override
+  String get upcomingTab => 'Kommende';
+
+  @override
+  String get pastTab => 'Tidligere';
+
+  @override
+  String get cancelledTab => 'Annulleret';
+
+  @override
+  String get viewDetails => 'Se detaljer';
+
+  @override
+  String get cancelBooking => 'Annuller';
+
+  @override
+  String get cancelBookingTitle => 'Annuller booking';
+
+  @override
+  String get cancelBookingConfirmation =>
+      'Er du sikker på, at du vil annullere denne booking?';
+
+  @override
+  String get keepBooking => 'Behold booking';
+
+  @override
+  String get yesCancel => 'Ja, annuller';
+
+  @override
+  String get bookingCancelledSuccess =>
+      'Booking annulleret og refundering er påbegyndt';
+
+  @override
+  String get errorCancellingBooking => 'Fejl ved annullering';
+
+  @override
+  String get tryAgain => 'Prøv igen';
+
+  @override
+  String get errorLoadingBookings => 'Fejl ved indlæsning af bookinger';
+
+  @override
+  String get refundNotice =>
+      'Bemærk: Du vil modtage fuld refundering, da der er mere end 48 timer til bookingen.';
+
+  @override
+  String get findYourNextChef => 'Find din næste madoplevelse';
+
+  @override
+  String get startExploring => 'Udforsk kokke';
+
+  @override
+  String get bookingStatus => 'Status';
+
+  @override
+  String get pending => 'Afventer';
+
+  @override
+  String get confirmed => 'Bekræftet';
+
+  @override
+  String get completed => 'Gennemført';
+
+  @override
+  String get inProgress => 'I gang';
+
+  @override
+  String get disputed => 'Disputeret';
+
+  @override
+  String get refunded => 'Refunderet';
+
+  @override
+  String guestCount(int count) {
+    return '$count gæster';
   }
 }

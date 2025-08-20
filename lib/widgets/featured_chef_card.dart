@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:homechef/models/chef.dart';
+import 'package:homechef/providers/favorites_provider.dart';
 
-class FeaturedChefCard extends StatefulWidget {
+class FeaturedChefCard extends ConsumerWidget {
   final Chef chef;
   final VoidCallback? onTap;
 
@@ -12,16 +14,11 @@ class FeaturedChefCard extends StatefulWidget {
   });
 
   @override
-  State<FeaturedChefCard> createState() => _FeaturedChefCardState();
-}
-
-class _FeaturedChefCardState extends State<FeaturedChefCard> {
-  bool isFavorited = false;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isFavorited = ref.watch(isChefFavoritedProvider(chef.id));
+    
     return GestureDetector(
-      onTap: widget.onTap,
+      onTap: onTap,
       child: Container(
         width: 160,
         height: 200,
@@ -43,14 +40,14 @@ class _FeaturedChefCardState extends State<FeaturedChefCard> {
               // Background image
               Positioned.fill(
                 child: Image.network(
-                  widget.chef.profileImage,
+                  chef.profileImage,
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) => Container(
-                    color: Theme.of(context).colorScheme.primaryContainer,
-                    child: Icon(
+                    color: Theme.of(context).colorScheme.primary,
+                    child: const Icon(
                       Icons.person,
                       size: 60,
-                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                      color: Colors.white,
                     ),
                   ),
                 ),
@@ -77,10 +74,8 @@ class _FeaturedChefCardState extends State<FeaturedChefCard> {
                 top: 12,
                 right: 12,
                 child: GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      isFavorited = !isFavorited;
-                    });
+                  onTap: () async {
+                    await ref.read(favoritesChefsProvider.notifier).toggleFavorite(chef.id);
                   },
                   child: Container(
                     padding: const EdgeInsets.all(6),
@@ -106,7 +101,7 @@ class _FeaturedChefCardState extends State<FeaturedChefCard> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      widget.chef.name,
+                      chef.name,
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,
@@ -116,24 +111,40 @@ class _FeaturedChefCardState extends State<FeaturedChefCard> {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.star,
-                          color: Colors.amber,
-                          size: 16,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          widget.chef.rating.toString(),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
+                    chef.reviewCount > 0
+                      ? Row(
+                          children: [
+                            const Icon(
+                              Icons.star,
+                              color: Colors.amber,
+                              size: 16,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              chef.rating.toString(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        )
+                      : Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.green,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Text(
+                            'NY',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
-                      ],
-                    ),
                   ],
                 ),
               ),

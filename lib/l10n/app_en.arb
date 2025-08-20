@@ -46,6 +46,11 @@
     "description": "Link to see all items"
   },
   
+  "featuredChefs": "Featured Chefs",
+  "@featuredChefs": {
+    "description": "Section title for featured chefs"
+  },
+  
   "bookChef": "Book Chef",
   "@bookChef": {
     "description": "Button to book a chef"
@@ -341,6 +346,146 @@
   "daysAgo": "{count}d",
   "@daysAgo": {
     "description": "Days ago format",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  
+  "notificationPreferences": "Notification Preferences",
+  "@notificationPreferences": {
+    "description": "Notification preferences page title"
+  },
+  
+  "notifications": "Notifications",
+  "@notifications": {
+    "description": "Notifications page title"
+  },
+  
+  "myBookings": "My Bookings",
+  "@myBookings": {
+    "description": "My bookings page title"
+  },
+  
+  "upcomingTab": "Upcoming",
+  "@upcomingTab": {
+    "description": "Upcoming bookings tab"
+  },
+  
+  "pastTab": "Past",
+  "@pastTab": {
+    "description": "Past bookings tab"
+  },
+  
+  "cancelledTab": "Cancelled",
+  "@cancelledTab": {
+    "description": "Cancelled bookings tab"
+  },
+  
+  "viewDetails": "View Details",
+  "@viewDetails": {
+    "description": "View booking details button"
+  },
+  
+  "cancelBooking": "Cancel",
+  "@cancelBooking": {
+    "description": "Cancel booking button"
+  },
+  
+  "cancelBookingTitle": "Cancel Booking",
+  "@cancelBookingTitle": {
+    "description": "Cancel booking dialog title"
+  },
+  
+  "cancelBookingConfirmation": "Are you sure you want to cancel this booking?",
+  "@cancelBookingConfirmation": {
+    "description": "Cancel booking confirmation message"
+  },
+  
+  "keepBooking": "Keep Booking",
+  "@keepBooking": {
+    "description": "Keep booking button"
+  },
+  
+  "yesCancel": "Yes, Cancel",
+  "@yesCancel": {
+    "description": "Confirm cancellation button"
+  },
+  
+  "bookingCancelledSuccess": "Booking cancelled and refund initiated",
+  "@bookingCancelledSuccess": {
+    "description": "Booking cancellation success message"
+  },
+  
+  "errorCancellingBooking": "Error cancelling",
+  "@errorCancellingBooking": {
+    "description": "Error cancelling booking message"
+  },
+  
+  "tryAgain": "Try Again",
+  "@tryAgain": {
+    "description": "Try again button"
+  },
+  
+  "errorLoadingBookings": "Error loading bookings",
+  "@errorLoadingBookings": {
+    "description": "Error loading bookings message"
+  },
+  
+  "refundNotice": "Note: You will receive a full refund as there are more than 48 hours until the booking.",
+  "@refundNotice": {
+    "description": "Refund notice message"
+  },
+  
+  "findYourNextChef": "Find your next dining experience",
+  "@findYourNextChef": {
+    "description": "Find next chef prompt"
+  },
+  
+  "startExploring": "Explore Chefs",
+  "@startExploring": {
+    "description": "Start exploring button"
+  },
+  
+  "bookingStatus": "Status",
+  "@bookingStatus": {
+    "description": "Booking status label"
+  },
+  
+  "pending": "Pending",
+  "@pending": {
+    "description": "Pending booking status"
+  },
+  
+  "confirmed": "Confirmed",
+  "@confirmed": {
+    "description": "Confirmed booking status"
+  },
+  
+  "completed": "Completed",
+  "@completed": {
+    "description": "Completed booking status"
+  },
+  
+  "inProgress": "In Progress",
+  "@inProgress": {
+    "description": "In progress booking status"
+  },
+  
+  "disputed": "Disputed",
+  "@disputed": {
+    "description": "Disputed booking status"
+  },
+  
+  "refunded": "Refunded",
+  "@refunded": {
+    "description": "Refunded booking status"
+  },
+  
+  "guestCount": "{count} guests",
+  "@guestCount": {
+    "description": "Guest count format",
     "placeholders": {
       "count": {
         "type": "int"

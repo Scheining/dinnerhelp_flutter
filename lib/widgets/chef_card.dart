@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:homechef/models/chef.dart';
 import 'package:homechef/widgets/rating_stars.dart';
+import 'package:homechef/core/utils/postal_code_mapper.dart';
 
 class ChefCard extends StatelessWidget {
   final Chef chef;
@@ -79,41 +80,58 @@ class ChefCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            RatingStars(rating: chef.rating, size: 14),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${chef.rating} (${chef.reviewCount})',
-                              style: TextStyle(
-                                color: Colors.grey.shade600,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.location_on,
-                              size: 14,
-                              color: Colors.grey.shade600,
-                            ),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                chef.location,
-                                style: TextStyle(
-                                  color: Colors.grey.shade600,
-                                  fontSize: 12,
+                        chef.reviewCount > 0
+                          ? Row(
+                              children: [
+                                RatingStars(rating: chef.rating, size: 14),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${chef.rating} (${chef.reviewCount})',
+                                  style: TextStyle(
+                                    color: Colors.grey.shade600,
+                                    fontSize: 12,
+                                  ),
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                              ],
+                            )
+                          : Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.green,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Text(
+                                'NY',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
-                          ],
-                        ),
+                        const SizedBox(height: 8),
+                        if (PostalCodeMapper.formatLocation(chef.location).isNotEmpty)
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.location_on,
+                                size: 14,
+                                color: Colors.grey.shade600,
+                              ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  PostalCodeMapper.formatLocation(chef.location),
+                                  style: TextStyle(
+                                    color: Colors.grey.shade600,
+                                    fontSize: 12,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
                         const SizedBox(height: 8),
                         Row(
                           children: [
@@ -123,7 +141,7 @@ class ChefCard extends StatelessWidget {
                               color: const Color(0xFF79CBC2),
                             ),
                             Text(
-                              '${chef.hourlyRate.toStringAsFixed(0)} DKK/hr',
+                              '${chef.hourlyRate.toStringAsFixed(0)} kr/time',
                               style: const TextStyle(
                                 color: Color(0xFF79CBC2),
                                 fontSize: 14,
@@ -155,15 +173,18 @@ class ChefCard extends StatelessWidget {
                           ),
                         ],
                       ),
-                      child: CircleAvatar(
-                        radius: 35,
-                        backgroundImage: NetworkImage(chef.profileImage),
-                        backgroundColor: Colors.grey.shade200,
-                        onBackgroundImageError: (error, stackTrace) {},
-                        child: chef.profileImage.isEmpty
-                            ? Icon(Icons.person, size: 35, color: Colors.grey.shade600)
-                            : null,
-                      ),
+                      child: chef.profileImage.isNotEmpty
+                        ? CircleAvatar(
+                            radius: 35,
+                            backgroundImage: NetworkImage(chef.profileImage),
+                            backgroundColor: const Color(0xFF79CBC2),
+                            onBackgroundImageError: (error, stackTrace) {},
+                          )
+                        : const CircleAvatar(
+                            radius: 35,
+                            backgroundColor: Color(0xFF79CBC2),
+                            child: Icon(Icons.person, size: 35, color: Colors.white),
+                          ),
                     ),
                     if (chef.isVerified)
                       Positioned(
@@ -247,15 +268,18 @@ class ChefCard extends StatelessWidget {
                             ),
                           ],
                         ),
-                        child: CircleAvatar(
-                          radius: 30,
-                          backgroundImage: NetworkImage(chef.profileImage),
-                          backgroundColor: Colors.grey.shade200,
-                          onBackgroundImageError: (error, stackTrace) {},
-                          child: chef.profileImage.isEmpty
-                              ? Icon(Icons.person, size: 30, color: Colors.grey.shade600)
-                              : null,
-                        ),
+                        child: chef.profileImage.isNotEmpty
+                          ? CircleAvatar(
+                              radius: 30,
+                              backgroundImage: NetworkImage(chef.profileImage),
+                              backgroundColor: const Color(0xFF79CBC2),
+                              onBackgroundImageError: (error, stackTrace) {},
+                            )
+                          : const CircleAvatar(
+                              radius: 30,
+                              backgroundColor: Color(0xFF79CBC2),
+                              child: Icon(Icons.person, size: 30, color: Colors.white),
+                            ),
                       ),
                       if (chef.isVerified)
                         Positioned(
@@ -315,19 +339,35 @@ class ChefCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      RatingStars(rating: chef.rating, size: 16),
-                      const SizedBox(width: 6),
-                      Text(
-                        '${chef.rating} (${chef.reviewCount} reviews)',
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontSize: 14,
+                  chef.reviewCount > 0
+                    ? Row(
+                        children: [
+                          RatingStars(rating: chef.rating, size: 16),
+                          const SizedBox(width: 6),
+                          Text(
+                            '${chef.rating} (${chef.reviewCount} anmeldelser)',
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      )
+                    : Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.green,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Text(
+                          'NY',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                    ],
-                  ),
                   const SizedBox(height: 8),
                   Text(
                     chef.cuisineTypes.join(' • '),
@@ -340,27 +380,29 @@ class ChefCard extends StatelessWidget {
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      Icon(
-                        Icons.location_on,
-                        size: 18,
-                        color: Colors.grey.shade600,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        '${chef.location} • ${chef.distanceKm.toStringAsFixed(1)} km away',
-                        style: TextStyle(
+                      if (PostalCodeMapper.formatLocation(chef.location).isNotEmpty) ...[
+                        Icon(
+                          Icons.location_on,
+                          size: 18,
                           color: Colors.grey.shade600,
-                          fontSize: 14,
                         ),
-                      ),
-                      const Spacer(),
+                        const SizedBox(width: 6),
+                        Text(
+                          '${PostalCodeMapper.formatLocation(chef.location)} • ${chef.distanceKm.toStringAsFixed(1)} km away',
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const Spacer(),
+                      ],
                       Icon(
                         Icons.attach_money,
                         size: 18,
                         color: const Color(0xFF79CBC2),
                       ),
                       Text(
-                        '${chef.hourlyRate.toStringAsFixed(0)} DKK/hr',
+                        '${chef.hourlyRate.toStringAsFixed(0)} kr/time',
                         style: const TextStyle(
                           color: Color(0xFF79CBC2),
                           fontSize: 16,

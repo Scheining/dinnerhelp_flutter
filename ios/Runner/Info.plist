@@ -44,15 +44,26 @@
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 		<string>UIInterfaceOrientationPortraitUpsideDown</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>flutterstripe</string>
+			</array>
+		</dict>
+	</array>
+	<key>NSAppleMusicUsageDescription</key>
+	<string>This app does not use Apple Music</string>
+	<key>NSCameraUsageDescription</key>
+	<string>DinnerHelp bruger dit kamera til at tage profilbilleder</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>DinnerHelp har brug for adgang til dit fotobibliotek for at vælge profilbilleder</string>
 </dict>
 </plist>

@@ -109,7 +109,9 @@ class CategoryChip extends StatelessWidget {
             SizedBox(
               width: 70,
               child: Text(
-                cuisine.name,
+                Localizations.localeOf(context).languageCode == 'da' 
+                    ? cuisine.nameDa 
+                    : cuisine.nameEn,
                 style: theme.textTheme.labelMedium?.copyWith(
                   color: theme.colorScheme.onSurface,
                   fontWeight: FontWeight.w600,

@@ -11,7 +11,7 @@ class LocaleNotifier extends _$LocaleNotifier {
   @override
   Locale? build() {
     _loadSavedLocale();
-    return null; // Use system locale by default
+    return const Locale('da'); // Danish as default
   }
 
   Future<void> _loadSavedLocale() async {
@@ -20,9 +20,13 @@ class LocaleNotifier extends _$LocaleNotifier {
       final languageCode = prefs.getString(_languageCodeKey);
       if (languageCode != null) {
         state = Locale(languageCode);
+      } else {
+        // Default to Danish if no preference is saved
+        state = const Locale('da');
       }
     } catch (e) {
-      // If loading fails, continue with system locale
+      // If loading fails, use Danish as default
+      state = const Locale('da');
     }
   }
 
