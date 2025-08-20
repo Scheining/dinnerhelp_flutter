@@ -1,11 +1,11 @@
 {
-    "name": "dreamflow_counter",
-    "short_name": "dreamflow_counter",
+    "name": "DinnerHelp",
+    "short_name": "DinnerHelp",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Connect with professional chefs for unforgettable dining experiences at home.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
