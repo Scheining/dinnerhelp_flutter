@@ -303,7 +303,7 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
       margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
         color: theme.brightness == Brightness.dark 
-            ? theme.colorScheme.surface 
+            ? const Color(0xFF252325) 
             : Colors.white,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [

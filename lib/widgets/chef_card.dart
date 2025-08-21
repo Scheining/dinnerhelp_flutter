@@ -31,7 +31,7 @@ class ChefCard extends StatelessWidget {
       child: Card(
         elevation: 4,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        color: theme.brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white,
+        color: theme.brightness == Brightness.dark ? const Color(0xFF252325) : Colors.white,
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(16),

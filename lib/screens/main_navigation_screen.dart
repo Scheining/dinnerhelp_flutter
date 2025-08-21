@@ -116,7 +116,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         items: _navigationItems(context),
         backgroundColor: Theme.of(context).brightness == Brightness.light
             ? Colors.white
-            : Theme.of(context).colorScheme.surfaceContainerHighest, // White for light mode, elevated surface for dark
+            : const Color(0xFF252325), // Unified dark color for navigation
         color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
         colorSelected: _getSelectedIconColor(context),
         indexSelected: currentIndex,

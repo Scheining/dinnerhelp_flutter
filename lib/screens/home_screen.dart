@@ -826,17 +826,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
           ),
         ),
-        child: Opacity(
-          opacity: progress,
-          child: CondensedCuisineSelector(
-            cuisines: _cuisines,
-            selectedCuisine: _selectedCuisine,
-            onCuisineSelected: (cuisine) {
-              setState(() {
-                _selectedCuisine = cuisine;
-              });
-            },
-          ),
+        child: CondensedCuisineSelector(
+          cuisines: _cuisines,
+          selectedCuisine: _selectedCuisine,
+          onCuisineSelected: (cuisine) {
+            setState(() {
+              _selectedCuisine = cuisine;
+            });
+          },
         ),
       ),
     );

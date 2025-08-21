@@ -309,6 +309,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       foregroundColor: Colors.red,
                       side: const BorderSide(color: Colors.red),
                       padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: theme.brightness == Brightness.dark 
+                          ? const Color(0xFF252325)
+                          : Colors.transparent,
                     ),
                     child: const Text('Log ud'),
                   ),
@@ -476,9 +479,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ),
         Container(
           decoration: BoxDecoration(
-            color: theme.colorScheme.surface,
+            color: theme.brightness == Brightness.dark 
+                ? const Color(0xFF252325)
+                : theme.colorScheme.surface,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade200),
+            border: Border.all(
+              color: theme.brightness == Brightness.dark 
+                  ? Colors.grey.shade800
+                  : Colors.grey.shade200,
+            ),
           ),
           child: Column(children: items),
         ),

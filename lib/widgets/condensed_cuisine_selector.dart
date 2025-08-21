@@ -68,9 +68,7 @@ class CondensedCuisineSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 50,
-      color: Theme.of(context).brightness == Brightness.light
-          ? Colors.white
-          : Theme.of(context).colorScheme.surfaceContainerHighest,
+      color: Colors.transparent, // Let parent container provide the background
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),

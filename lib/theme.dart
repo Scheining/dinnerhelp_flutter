@@ -41,14 +41,14 @@ class DarkModeColors {
   static const darkOnErrorContainer = Color(0xFFFFDAD6);
   static const darkInversePrimary = Color(0xFF5A9B93);
   static const darkShadow = Color(0xFF000000);
-  static const darkSurface = Color(0xFF1A1F20);
+  static const darkSurface = Color(0xFF000000); // Pure black background
   static const darkSurfaceContainerLowest = Color(0xFF0E1415);
   static const darkSurfaceContainerLow = Color(0xFF1A1F20);
   static const darkSurfaceContainer = Color(0xFF1E2324);
-  static const darkSurfaceContainerHigh = Color(0xFF282D2E);
+  static const darkSurfaceContainerHigh = Color(0xFF252325); // App bar, navigation
   static const darkSurfaceContainerHighest = Color(0xFF333839);
   static const darkOnSurface = Color(0xFFE0E0E0);
-  static const darkAppBarBackground = Color(0xFF292E31);
+  static const darkAppBarBackground = Color(0xFF252325); // Unified app bar color
 }
 
 class FontSizes {
@@ -191,9 +191,9 @@ ThemeData get darkTheme => ThemeData(
     surfaceContainerHighest: DarkModeColors.darkSurfaceContainerHighest,
   ),
   brightness: Brightness.dark,
-  scaffoldBackgroundColor: DarkModeColors.darkSurface,
+  scaffoldBackgroundColor: Color(0xFF000000), // Pure black background
   appBarTheme: const AppBarTheme(
-    backgroundColor: Color(0xFF282D2E), // darkSurfaceContainerHigh
+    backgroundColor: Color(0xFF252325), // Unified app bar color
     foregroundColor: DarkModeColors.darkOnPrimaryContainer,
     elevation: 0,
     surfaceTintColor: Colors.transparent, // Prevent Material 3 tinting

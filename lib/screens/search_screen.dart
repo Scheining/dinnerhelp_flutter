@@ -587,15 +587,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               ? Theme.of(context).appBarTheme.backgroundColor
               : Colors.white,
         ),
-        child: Opacity(
-          opacity: progress,
-          child: CondensedCuisineSelector(
-            cuisines: _cuisines,
-            selectedCuisine: currentFilters.cuisineTypes?.isNotEmpty == true 
-                ? currentFilters.cuisineTypes!.first 
-                : null,
-            onCuisineSelected: _updateCuisineFilter,
-          ),
+        child: CondensedCuisineSelector(
+          cuisines: _cuisines,
+          selectedCuisine: currentFilters.cuisineTypes?.isNotEmpty == true 
+              ? currentFilters.cuisineTypes!.first 
+              : null,
+          onCuisineSelected: _updateCuisineFilter,
         ),
       ),
     );
@@ -758,7 +755,7 @@ class _AvailabilityChefCard extends ConsumerWidget {
       width: double.infinity, // Full width for search page
       child: Card(
         color: theme.brightness == Brightness.dark 
-            ? theme.colorScheme.surface 
+            ? const Color(0xFF252325) 
             : Colors.white,
         child: InkWell(
           onTap: onTap,
