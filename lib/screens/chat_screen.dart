@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:homechef/models/message.dart';
-import 'package:homechef/widgets/chat_bubble.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:homechef/models/conversation.dart';
+import 'package:homechef/providers/messaging_provider.dart';
+import 'package:homechef/providers/auth_provider.dart';
+import 'package:homechef/core/utils/contact_info_detector.dart';
+import 'package:intl/intl.dart';
 
-class ChatScreen extends StatefulWidget {
+class ChatScreen extends ConsumerStatefulWidget {
   final String chefId;
   final String chefName;
   final String chefImage;
@@ -15,19 +19,39 @@ class ChatScreen extends StatefulWidget {
   });
 
   @override
-  State<ChatScreen> createState() => _ChatScreenState();
+  ConsumerState<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> {
+class _ChatScreenState extends ConsumerState<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  List<ChatMessage> _messages = [];
+  String? _conversationId;
+  bool _isLoading = true;
+  bool _isSending = false;
 
   @override
   void initState() {
     super.initState();
-    _messages = ChatMessage.getSampleMessages('chat_${widget.chefId}');
-    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+    _initializeChat();
+  }
+
+  Future<void> _initializeChat() async {
+    final conversationsNotifier = ref.read(unifiedConversationsNotifierProvider.notifier);
+    final conversationId = await conversationsNotifier.getOrCreateInquiry(widget.chefId);
+    
+    if (conversationId != null && mounted) {
+      setState(() {
+        _conversationId = conversationId;
+        _isLoading = false;
+      });
+      
+      // Scroll to bottom after messages load
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+    } else {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -47,63 +71,213 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  void _sendMessage() {
-    if (_messageController.text.trim().isEmpty) return;
+  Future<void> _sendMessage() async {
+    if (_messageController.text.trim().isEmpty || _conversationId == null || _isSending) return;
 
-    final newMessage = ChatMessage(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      chatId: 'chat_${widget.chefId}',
-      senderId: 'user1',
-      senderName: 'You',
-      content: _messageController.text.trim(),
-      timestamp: DateTime.now(),
-      isFromUser: true,
-      isRead: false,
-    );
+    final messageText = _messageController.text.trim();
+    
+    // Validate message for contact information
+    final validation = ContactInfoDetector.validate(messageText);
+    
+    if (!validation.isValid) {
+      // Show error dialog for prohibited content
+      _showContactInfoError(validation.issues);
+      return;
+    }
+    
+    if (validation.hasWarning) {
+      // Show warning dialog for suspicious content
+      final shouldSend = await _showContactInfoWarning(validation.issues);
+      if (!shouldSend) return;
+    }
 
     setState(() {
-      _messages.add(newMessage);
-      _messageController.clear();
+      _isSending = true;
     });
 
-    _scrollToBottom();
+    final messagesNotifier = ref.read(inquiryMessagesNotifierProvider(_conversationId!).notifier);
+    final success = await messagesNotifier.sendMessage(messageText);
 
-    // Simulate chef response after a delay
-    Future.delayed(const Duration(seconds: 2), () {
-      _simulateChefResponse();
+    if (success) {
+      _messageController.clear();
+      _scrollToBottom();
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Kunne ikke sende besked. Prøv igen.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+
+    setState(() {
+      _isSending = false;
     });
   }
 
-  void _simulateChefResponse() {
-    final responses = [
-      'Thank you for your message! I\'ll get back to you soon.',
-      'That sounds great! I\'d be happy to help with your event.',
-      'Perfect! I can definitely accommodate those dietary requirements.',
-      'Let me check my availability and I\'ll confirm shortly.',
-      'I look forward to cooking for you! 👨‍🍳',
-    ];
-
-    final response = ChatMessage(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      chatId: 'chat_${widget.chefId}',
-      senderId: widget.chefId,
-      senderName: widget.chefName,
-      content: responses[DateTime.now().second % responses.length],
-      timestamp: DateTime.now(),
-      isFromUser: false,
-      isRead: false,
+  void _showContactInfoError(List<String> issues) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.error_outline, color: Colors.red),
+            SizedBox(width: 8),
+            Text('Besked blokeret'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Din besked indeholder information der ikke er tilladt:',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 12),
+            ...issues.map((issue) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('• ', style: TextStyle(color: Colors.red)),
+                  Expanded(child: Text(issue)),
+                ],
+              ),
+            )),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.blue.shade200),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.info_outline, color: Colors.blue, size: 20),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Al kommunikation skal foregå gennem DinnerHelp for din sikkerhed.',
+                      style: TextStyle(fontSize: 13),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Forstået'),
+          ),
+        ],
+      ),
     );
+  }
 
-    setState(() {
-      _messages.add(response);
-    });
-
-    _scrollToBottom();
+  Future<bool> _showContactInfoWarning(List<String> issues) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('Advarsel'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Din besked ser ud til at indeholde kontaktoplysninger.',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange.shade200),
+              ),
+              child: const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Husk at:',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  SizedBox(height: 8),
+                  Text('• Deling af telefonnumre er ikke tilladt'),
+                  Text('• Deling af email adresser er ikke tilladt'),
+                  Text('• Deling af sociale medier er ikke tilladt'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Er du sikker på at du vil sende denne besked?',
+              style: TextStyle(fontWeight: FontWeight.w500),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annuller'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.orange,
+            ),
+            child: const Text('Send alligevel'),
+          ),
+        ],
+      ),
+    );
+    
+    return result ?? false;
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final currentUser = ref.watch(currentUserProvider).value;
+
+    if (_isLoading) {
+      return Scaffold(
+        appBar: AppBar(
+          backgroundColor: theme.colorScheme.surface,
+          title: Text(widget.chefName),
+        ),
+        body: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    if (_conversationId == null) {
+      return Scaffold(
+        appBar: AppBar(
+          backgroundColor: theme.colorScheme.surface,
+          title: Text(widget.chefName),
+        ),
+        body: const Center(
+          child: Text('Kunne ikke starte samtale'),
+        ),
+      );
+    }
+
+    final messagesAsync = ref.watch(inquiryMessagesNotifierProvider(_conversationId!));
 
     return Scaffold(
       appBar: AppBar(
@@ -112,9 +286,12 @@ class _ChatScreenState extends State<ChatScreen> {
           children: [
             CircleAvatar(
               radius: 18,
-              backgroundImage: NetworkImage(widget.chefImage),
-              onBackgroundImageError: (error, stackTrace) {},
-              child: const Icon(Icons.person, size: 18),
+              backgroundImage: widget.chefImage.isNotEmpty 
+                  ? NetworkImage(widget.chefImage)
+                  : null,
+              child: widget.chefImage.isEmpty 
+                  ? const Icon(Icons.person, size: 18)
+                  : null,
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -128,9 +305,9 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                   ),
                   Text(
-                    'Chef',
+                    'Kok',
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: Colors.grey.shade600,
+                      color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
                     ),
                   ),
                 ],
@@ -138,39 +315,53 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.phone),
-            onPressed: () {
-              // TODO: Implement phone call
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Phone call feature coming soon!')),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.videocam),
-            onPressed: () {
-              // TODO: Implement video call
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Video call feature coming soon!')),
-              );
-            },
-          ),
-        ],
       ),
       body: Column(
         children: [
+          // Info banner about contact info policy
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            color: Colors.blue.shade50.withOpacity(isDark ? 0.1 : 1),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.info_outline,
+                  size: 16,
+                  color: Colors.blue.shade700,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Deling af kontaktoplysninger er ikke tilladt',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.blue.shade700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
           Expanded(
-            child: _messages.isEmpty
-                ? Center(
+            child: messagesAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, _) => Center(
+                child: Text('Fejl: ${error.toString()}'),
+              ),
+              data: (messages) {
+                if (messages.isEmpty) {
+                  return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         CircleAvatar(
                           radius: 40,
-                          backgroundImage: NetworkImage(widget.chefImage),
-                          child: const Icon(Icons.person, size: 40),
+                          backgroundImage: widget.chefImage.isNotEmpty
+                              ? NetworkImage(widget.chefImage)
+                              : null,
+                          child: widget.chefImage.isEmpty
+                              ? const Icon(Icons.person, size: 40)
+                              : null,
                         ),
                         const SizedBox(height: 16),
                         Text(
@@ -181,31 +372,67 @@ class _ChatScreenState extends State<ChatScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Start a conversation',
+                          'Start en samtale',
                           style: theme.textTheme.bodyMedium?.copyWith(
-                            color: Colors.grey.shade600,
+                            color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
                           ),
                         ),
                       ],
                     ),
-                  )
-                : ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    itemCount: _messages.length,
-                    itemBuilder: (context, index) {
-                      final message = _messages[index];
-                      return ChatBubble(message: message);
-                    },
-                  ),
+                  );
+                }
+
+                // Mark unread messages as read
+                final unreadMessages = messages
+                    .where((m) => !m.isRead && m.senderId != currentUser?.id)
+                    .map((m) => m.id)
+                    .toList();
+                
+                if (unreadMessages.isNotEmpty) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    ref.read(inquiryMessagesNotifierProvider(_conversationId!).notifier)
+                        .markMessagesAsRead(unreadMessages);
+                  });
+                }
+
+                return ListView.builder(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  itemCount: messages.length,
+                  itemBuilder: (context, index) {
+                    final message = messages[index];
+                    final isFromUser = message.senderId == currentUser?.id;
+                    final showDate = index == 0 || 
+                        !_isSameDay(messages[index - 1].createdAt, message.createdAt);
+
+                    return Column(
+                      children: [
+                        if (showDate)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            child: Text(
+                              _formatDate(message.createdAt),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                              ),
+                            ),
+                          ),
+                        _buildMessageBubble(message, isFromUser, isDark),
+                      ],
+                    );
+                  },
+                );
+              },
+            ),
           ),
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
+              color: isDark ? const Color(0xFF252325) : theme.colorScheme.surface,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.grey.withValues(alpha: 0.1),
+                  color: Colors.black.withOpacity(0.05),
                   blurRadius: 4,
                   offset: const Offset(0, -2),
                 ),
@@ -218,19 +445,26 @@ class _ChatScreenState extends State<ChatScreen> {
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
+                        color: isDark 
+                            ? Colors.grey.shade800.withOpacity(0.5)
+                            : Colors.grey.shade100,
                         borderRadius: BorderRadius.circular(24),
                       ),
                       child: TextField(
                         controller: _messageController,
                         decoration: InputDecoration(
-                          hintText: 'Type a message...',
+                          hintText: 'Skriv en besked...',
                           border: InputBorder.none,
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16,
                             vertical: 12,
                           ),
-                          hintStyle: TextStyle(color: Colors.grey.shade600),
+                          hintStyle: TextStyle(
+                            color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                          ),
+                        ),
+                        style: TextStyle(
+                          color: isDark ? Colors.white : Colors.black87,
                         ),
                         maxLines: null,
                         textCapitalization: TextCapitalization.sentences,
@@ -241,16 +475,29 @@ class _ChatScreenState extends State<ChatScreen> {
                   const SizedBox(width: 8),
                   Container(
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.primary,
+                      color: _isSending 
+                          ? Colors.grey 
+                          : theme.colorScheme.primary,
                       shape: BoxShape.circle,
                     ),
                     child: IconButton(
-                      onPressed: _sendMessage,
-                      icon: Icon(
-                        Icons.send,
-                        color: theme.colorScheme.onPrimary,
-                        size: 20,
-                      ),
+                      onPressed: _isSending ? null : _sendMessage,
+                      icon: _isSending
+                          ? SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  theme.colorScheme.onPrimary,
+                                ),
+                              ),
+                            )
+                          : Icon(
+                              Icons.send,
+                              color: theme.colorScheme.onPrimary,
+                              size: 20,
+                            ),
                     ),
                   ),
                 ],
@@ -260,5 +507,68 @@ class _ChatScreenState extends State<ChatScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildMessageBubble(InquiryMessage message, bool isFromUser, bool isDark) {
+    return Align(
+      alignment: isFromUser ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        margin: EdgeInsets.only(
+          left: isFromUser ? 64 : 16,
+          right: isFromUser ? 16 : 64,
+          bottom: 8,
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: isFromUser
+              ? Theme.of(context).colorScheme.primary
+              : (isDark ? Colors.grey.shade800 : Colors.grey.shade200),
+          borderRadius: BorderRadius.only(
+            topLeft: const Radius.circular(16),
+            topRight: const Radius.circular(16),
+            bottomLeft: Radius.circular(isFromUser ? 16 : 4),
+            bottomRight: Radius.circular(isFromUser ? 4 : 16),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              message.content,
+              style: TextStyle(
+                color: isFromUser
+                    ? Colors.white
+                    : (isDark ? Colors.white : Colors.black87),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              DateFormat('HH:mm').format(message.createdAt),
+              style: TextStyle(
+                fontSize: 11,
+                color: isFromUser
+                    ? Colors.white.withOpacity(0.7)
+                    : (isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  bool _isSameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    if (_isSameDay(date, now)) {
+      return 'I dag';
+    } else if (_isSameDay(date, now.subtract(const Duration(days: 1)))) {
+      return 'I går';
+    } else {
+      return DateFormat('d. MMMM yyyy', 'da_DK').format(date);
+    }
   }
 }

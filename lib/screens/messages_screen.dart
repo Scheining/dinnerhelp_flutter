@@ -1,99 +1,122 @@
 import 'package:flutter/material.dart';
-import 'package:homechef/models/message.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:homechef/models/conversation.dart';
+import 'package:homechef/providers/messaging_provider.dart';
 import 'package:homechef/screens/chat_screen.dart';
+import 'package:intl/intl.dart';
 
-class MessagesScreen extends StatelessWidget {
+class MessagesScreen extends ConsumerWidget {
   const MessagesScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final conversationsAsync = ref.watch(unifiedConversationsNotifierProvider);
     
-    // Sample chat data
-    final chats = [
-      Chat(
-        id: 'chat_1',
-        chefId: '1',
-        chefName: 'Lars Nielsen',
-        chefImage: 'https://pixabay.com/get/g24a62bc118f3af91b1e93be58966f8e74118b4d1f413f7c2959623342bff7e50a316adc41c3ff570aad063e55e463a5cc6ffa293d5df12b97a4d093a0a5b20a4_1280.jpg',
-        userId: 'user1',
-        messages: ChatMessage.getSampleMessages('chat_1'),
-        lastActivity: DateTime.now().subtract(const Duration(minutes: 15)),
-      ),
-      Chat(
-        id: 'chat_2',
-        chefId: '3',
-        chefName: 'Hiroshi Tanaka',
-        chefImage: 'https://pixabay.com/get/g4ae9d08f517456e145051a27a85e3f32dead358dd08125bf035b5516db999960571e19e3c4f062f968dc9de14bd10b48c625a1d3c05a5315f9280e50a7d9f435_1280.jpg',
-        userId: 'user1',
-        messages: [
-          ChatMessage(
-            id: '1',
-            chatId: 'chat_2',
-            senderId: 'chef3',
-            senderName: 'Hiroshi Tanaka',
-            content: 'Thank you for your interest in my sushi experience! I\'d be happy to prepare an authentic Japanese dinner for your group.',
-            timestamp: DateTime.now().subtract(const Duration(hours: 3)),
-            isFromUser: false,
-            isRead: false,
-          ),
-        ],
-        lastActivity: DateTime.now().subtract(const Duration(hours: 3)),
-      ),
-    ];
-
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Messages',
+          'Beskeder',
           style: theme.textTheme.headlineSmall?.copyWith(
             fontWeight: FontWeight.bold,
           ),
         ),
         backgroundColor: theme.colorScheme.surface,
       ),
-      body: chats.isEmpty
-          ? Center(
+      body: conversationsAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, _) => Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error_outline,
+                size: 64,
+                color: Colors.red.shade400,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Kunne ikke indlæse beskeder',
+                style: theme.textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () => ref.invalidate(unifiedConversationsNotifierProvider),
+                child: const Text('Prøv igen'),
+              ),
+            ],
+          ),
+        ),
+        data: (conversations) {
+          if (conversations.isEmpty) {
+            return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
                     Icons.chat_bubble_outline,
                     size: 80,
-                    color: Colors.grey.shade400,
+                    color: isDark ? Colors.grey.shade600 : Colors.grey.shade400,
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'No messages yet',
+                    'Ingen beskeder endnu',
                     style: theme.textTheme.titleMedium?.copyWith(
-                      color: Colors.grey.shade600,
+                      color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Start a conversation with a chef',
+                    'Start en samtale med en kok',
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: Colors.grey.shade500,
+                      color: isDark ? Colors.grey.shade500 : Colors.grey.shade500,
                     ),
                   ),
                 ],
               ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.only(bottom: 100),
-              itemCount: chats.length,
-              itemBuilder: (context, index) {
-                final chat = chats[index];
-                return _buildChatTile(context, chat);
-              },
-            ),
+            );
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.only(bottom: 100),
+            itemCount: conversations.length,
+            itemBuilder: (context, index) {
+              final conversation = conversations[index];
+              return _buildConversationTile(context, ref, conversation, isDark);
+            },
+          );
+        },
+      ),
     );
   }
 
-  Widget _buildChatTile(BuildContext context, Chat chat) {
+  Widget _buildConversationTile(
+    BuildContext context,
+    WidgetRef ref,
+    UnifiedConversation conversation,
+    bool isDark,
+  ) {
     final theme = Theme.of(context);
-    final lastMessage = chat.lastMessage;
-    final unreadCount = chat.unreadCount;
+    
+    // Determine icon and subtitle based on conversation type
+    IconData typeIcon;
+    String subtitle;
+    Color? statusColor;
+    
+    if (conversation.type == ConversationType.booking) {
+      typeIcon = Icons.calendar_today;
+      final status = conversation.bookingStatus ?? 'pending';
+      subtitle = _getBookingStatusText(status);
+      statusColor = _getBookingStatusColor(status);
+      
+      if (conversation.bookingDate != null) {
+        subtitle += ' • ${DateFormat('d. MMM', 'da_DK').format(conversation.bookingDate!)}';
+      }
+    } else {
+      typeIcon = Icons.chat_bubble_outline;
+      subtitle = conversation.lastMessage ?? 'Start en samtale';
+    }
 
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -101,91 +124,146 @@ class MessagesScreen extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 28,
-            backgroundImage: NetworkImage(chat.chefImage),
-            onBackgroundImageError: (error, stackTrace) {},
-            child: const Icon(Icons.person),
+            backgroundImage: conversation.otherPersonImage?.isNotEmpty == true
+                ? NetworkImage(conversation.otherPersonImage!)
+                : null,
+            child: conversation.otherPersonImage?.isEmpty ?? true
+                ? const Icon(Icons.person, size: 28)
+                : null,
           ),
-          if (unreadCount > 0)
+          // Type indicator badge
+          Positioned(
+            right: 0,
+            bottom: 0,
+            child: Container(
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                color: conversation.type == ConversationType.booking
+                    ? theme.colorScheme.primary
+                    : Colors.grey.shade600,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isDark ? Colors.black : Colors.white,
+                  width: 2,
+                ),
+              ),
+              child: Icon(
+                typeIcon,
+                size: 12,
+                color: Colors.white,
+              ),
+            ),
+          ),
+          // Unread indicator
+          if (conversation.unreadCount > 0)
             Positioned(
               right: 0,
               top: 0,
               child: Container(
-                padding: const EdgeInsets.all(4),
-                decoration: const BoxDecoration(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
                   color: Colors.red,
-                  shape: BoxShape.circle,
-                ),
-                constraints: const BoxConstraints(
-                  minWidth: 20,
-                  minHeight: 20,
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
-                  unreadCount.toString(),
+                  conversation.unreadCount > 99 
+                      ? '99+' 
+                      : conversation.unreadCount.toString(),
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
                   ),
-                  textAlign: TextAlign.center,
                 ),
               ),
             ),
         ],
       ),
-      title: Text(
-        chat.chefName,
-        style: theme.textTheme.titleMedium?.copyWith(
-          fontWeight: unreadCount > 0 ? FontWeight.w600 : FontWeight.normal,
-        ),
-      ),
-      subtitle: lastMessage != null
-          ? Text(
-              lastMessage.content,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: Colors.grey.shade600,
-                fontWeight: unreadCount > 0 ? FontWeight.w500 : FontWeight.normal,
+      title: Row(
+        children: [
+          Expanded(
+            child: Text(
+              conversation.otherPersonName ?? 'Ukendt',
+              style: theme.textTheme.bodyLarge?.copyWith(
+                fontWeight: conversation.unreadCount > 0 
+                    ? FontWeight.bold 
+                    : FontWeight.normal,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-            )
-          : null,
-      trailing: lastMessage != null
-          ? Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  _formatTime(lastMessage.timestamp),
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: unreadCount > 0 
-                        ? theme.colorScheme.primary 
-                        : Colors.grey.shade500,
-                    fontWeight: unreadCount > 0 ? FontWeight.w600 : FontWeight.normal,
-                  ),
-                ),
-                if (lastMessage.isFromUser && lastMessage.isRead)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Icon(
-                      Icons.done_all,
-                      size: 14,
-                      color: Colors.grey.shade400,
-                    ),
-                  ),
-              ],
-            )
-          : null,
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ChatScreen(
-              chefId: chat.chefId,
-              chefName: chat.chefName,
-              chefImage: chat.chefImage,
             ),
           ),
-        );
+          if (conversation.lastMessageAt != null)
+            Text(
+              _formatTime(conversation.lastMessageAt!),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: conversation.unreadCount > 0
+                    ? theme.colorScheme.primary
+                    : (isDark ? Colors.grey.shade500 : Colors.grey.shade600),
+              ),
+            ),
+        ],
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              if (statusColor != null) ...[
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: statusColor,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 6),
+              ],
+              Expanded(
+                child: Text(
+                  subtitle,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: conversation.unreadCount > 0
+                        ? (isDark ? Colors.white : Colors.black87)
+                        : (isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+                    fontWeight: conversation.unreadCount > 0
+                        ? FontWeight.w500
+                        : FontWeight.normal,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+      onTap: () {
+        // Navigate to appropriate chat screen based on type
+        if (conversation.type == ConversationType.inquiry) {
+          // For inquiries, we need to get chef info
+          // This would ideally come from the conversation data
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ChatScreen(
+                chefId: conversation.id, // This might need adjustment
+                chefName: conversation.otherPersonName ?? 'Kok',
+                chefImage: conversation.otherPersonImage ?? '',
+              ),
+            ),
+          );
+        } else {
+          // For booking chats, navigate to booking chat screen
+          // TODO: Create BookingChatScreen
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Booking chat kommer snart'),
+            ),
+          );
+        }
       },
     );
   }
@@ -193,21 +271,60 @@ class MessagesScreen extends StatelessWidget {
   String _formatTime(DateTime dateTime) {
     final now = DateTime.now();
     final difference = now.difference(dateTime);
-    
-    if (difference.inDays > 0) {
-      if (difference.inDays == 1) {
-        return 'Yesterday';
-      } else if (difference.inDays < 7) {
-        return '${difference.inDays}d';
-      } else {
-        return '${dateTime.day}/${dateTime.month}';
-      }
-    } else if (difference.inHours > 0) {
-      return '${difference.inHours}h';
-    } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes}m';
+
+    if (difference.inMinutes < 1) {
+      return 'Nu';
+    } else if (difference.inHours < 1) {
+      return '${difference.inMinutes} min';
+    } else if (difference.inDays < 1) {
+      return '${difference.inHours} t';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays} d';
     } else {
-      return 'now';
+      return DateFormat('d/M').format(dateTime);
+    }
+  }
+
+  String _getBookingStatusText(String status) {
+    switch (status) {
+      case 'pending':
+        return 'Afventer svar';
+      case 'accepted':
+        return 'Accepteret';
+      case 'confirmed':
+        return 'Bekræftet';
+      case 'in_progress':
+        return 'I gang';
+      case 'completed':
+        return 'Afsluttet';
+      case 'cancelled':
+        return 'Annulleret';
+      case 'disputed':
+        return 'Under tvist';
+      case 'refunded':
+        return 'Refunderet';
+      default:
+        return status;
+    }
+  }
+
+  Color _getBookingStatusColor(String status) {
+    switch (status) {
+      case 'pending':
+        return Colors.orange;
+      case 'accepted':
+      case 'confirmed':
+        return Colors.green;
+      case 'in_progress':
+        return Colors.blue;
+      case 'completed':
+        return Colors.grey;
+      case 'cancelled':
+      case 'disputed':
+      case 'refunded':
+        return Colors.red;
+      default:
+        return Colors.grey;
     }
   }
 }
