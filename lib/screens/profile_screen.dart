@@ -336,7 +336,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final displayName = fullName.isEmpty ? 'Bruger' : fullName;
     final email = user.email ?? 'Ingen email';
     final isChef = profile?['is_chef'] ?? false;
-    final avatarUrl = profile?['avatar_url'] as String?;
+    final avatarUrl = profile?['profile_image_url'] as String?;
     
     // Get initials for avatar
     final initials = displayName.split(' ')
@@ -698,24 +698,51 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         // Upload image to Supabase storage
         final file = File(image.path);
         final fileName = '${userId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        final filePath = 'profile-images/$fileName';
         
         final supabaseClient = supabase.Supabase.instance.client;
         
-        // Upload to user-images bucket
+        // Check if user already has a profile image and delete it first
+        final existingProfile = await supabaseClient
+            .from('profiles')
+            .select('profile_image_url')
+            .eq('id', userId)
+            .single();
+            
+        if (existingProfile['profile_image_url'] != null) {
+          final existingUrl = existingProfile['profile_image_url'] as String;
+          // Extract the file path from the URL
+          final uri = Uri.parse(existingUrl);
+          final pathSegments = uri.pathSegments;
+          if (pathSegments.length > 2 && pathSegments.contains('user-images')) {
+            final existingPath = pathSegments.sublist(pathSegments.indexOf('user-images') + 1).join('/');
+            try {
+              // Try to delete the old image
+              await supabaseClient.storage
+                  .from('user-images')
+                  .remove([existingPath]);
+            } catch (e) {
+              // Ignore deletion errors - old file might not exist
+              print('Could not delete old profile image: $e');
+            }
+          }
+        }
+        
+        // Upload to user-images bucket in profile-images folder
         final response = await supabaseClient.storage
             .from('user-images')
-            .upload(fileName, file);
+            .upload(filePath, file);
         
         if (response.isNotEmpty) {
           // Get public URL
           final publicUrl = supabaseClient.storage
               .from('user-images')
-              .getPublicUrl(fileName);
+              .getPublicUrl(filePath);
           
-          // Update profile with new avatar URL
+          // Update profile with new profile image URL
           await supabaseClient
               .from('profiles')
-              .update({'avatar_url': publicUrl})
+              .update({'profile_image_url': publicUrl})
               .eq('id', userId);
           
           // Invalidate the user profile provider to refresh the data

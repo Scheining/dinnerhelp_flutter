@@ -953,19 +953,18 @@ class _AvailabilityChefCard extends ConsumerWidget {
                     const SizedBox(height: 8),
                     
                     // Bio preview
-                    Text(
-                      result.chef.bio.isNotEmpty 
-                        ? result.chef.bio
-                        : 'Passioneret kok med erfaring i at skabe uforglemmelige madoplevelser.',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.brightness == Brightness.dark 
-                            ? Colors.grey.shade300 
-                            : Colors.grey.shade700,
-                        height: 1.3,
+                    if (result.chef.bio.isNotEmpty)
+                      Text(
+                        result.chef.bio,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.brightness == Brightness.dark 
+                              ? Colors.grey.shade300 
+                              : Colors.grey.shade700,
+                          height: 1.3,
+                        ),
+                        maxLines: 4, // Increased to show more bio text
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 4, // Increased to show more bio text
-                      overflow: TextOverflow.ellipsis,
-                    ),
                     
                     const SizedBox(height: 12),
                     

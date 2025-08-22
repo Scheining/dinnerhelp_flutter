@@ -162,19 +162,19 @@ class ChefProfileScreen extends ConsumerWidget {
                                     : Colors.grey.shade900,
                               ),
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              chef.bio.isNotEmpty 
-                                ? chef.bio 
-                                : 'Velkommen, mit navn er ${chef.name}. Jeg arbejder jeg som professionel kok på restaurant Paté Paté i Kødbyen. Jeg er passioneret omkring madlavning og tror på, at mad skal være en oplevelse, der både smager godt og gør godt for kroppen.\n\nMin filosofi er enkel: Brug friske, sæsonbaserede råvarer, minimer madspild og udforsk kreative smagsoplevelser.',
-                              style: TextStyle(
-                                color: theme.brightness == Brightness.dark
-                                    ? Colors.grey.shade300
-                                    : Colors.grey.shade700,
-                                fontSize: 14,
-                                height: 1.6,
+                            if (chef.bio.isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                chef.bio,
+                                style: TextStyle(
+                                  color: theme.brightness == Brightness.dark
+                                      ? Colors.grey.shade300
+                                      : Colors.grey.shade700,
+                                  fontSize: 14,
+                                  height: 1.6,
+                                ),
                               ),
-                            ),
+                            ],
                           ],
                         ),
                       ),
