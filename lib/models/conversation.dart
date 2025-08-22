@@ -30,12 +30,12 @@ class InquiryMessage with _$InquiryMessage {
   const factory InquiryMessage({
     required String id,
     @JsonKey(name: 'inquiry_id') required String inquiryId,
-    required String senderId,
+    @JsonKey(name: 'sender_id') required String senderId,
     required String content,
-    @Default(false) bool isRead,
-    @Default(false) bool isFlagged,
-    String? flaggedReason,
-    required DateTime createdAt,
+    @JsonKey(name: 'is_read') @Default(false) bool isRead,
+    @JsonKey(name: 'is_flagged') @Default(false) bool isFlagged,
+    @JsonKey(name: 'flagged_reason') String? flaggedReason,
+    @JsonKey(name: 'created_at') required DateTime createdAt,
   }) = _InquiryMessage;
 
   factory InquiryMessage.fromJson(Map<String, dynamic> json) =>

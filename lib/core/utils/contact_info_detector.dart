@@ -14,8 +14,9 @@ class ContactInfoDetector {
 
   static final RegExp _socialMediaPattern = RegExp(
     r'(?:'
-    r'(?:@|(?:instagram|insta|ig|facebook|fb|twitter|snap|snapchat|tiktok|linkedin|whatsapp)(?:\.com)?/?:?\s*/?@?)[a-zA-Z0-9._-]+|'
-    r'(?:instagram|insta|ig|facebook|fb|twitter|snap|snapchat|tiktok|linkedin)\.com/[a-zA-Z0-9._-]+'
+    r'(?:@[a-zA-Z0-9._-]+)|' // @ handles
+    r'(?:\b(?:instagram|insta|facebook|fb|twitter|snap|snapchat|tiktok|linkedin|whatsapp)\b(?:\.com)?/?:?\s*/?@?[a-zA-Z0-9._-]+)|' // social media with username
+    r'(?:\b(?:instagram|insta|facebook|fb|twitter|snap|snapchat|tiktok|linkedin)\.com/[a-zA-Z0-9._-]+)' // full URLs
     r')',
     caseSensitive: false,
   );

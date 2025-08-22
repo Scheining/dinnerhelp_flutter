@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:homechef/models/conversation.dart';
+import 'package:homechef/models/conversation_simple.dart';
 import 'package:homechef/providers/messaging_provider.dart';
+import 'package:homechef/providers/messaging_provider_simple.dart';
+import 'package:homechef/providers/auth_provider.dart';
 import 'package:homechef/screens/chat_screen.dart';
 import 'package:intl/intl.dart';
 
@@ -10,9 +12,31 @@ class MessagesScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    print('DEBUG MessagesScreen: build() called');
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    
+    print('DEBUG MessagesScreen: About to watch provider...');
     final conversationsAsync = ref.watch(unifiedConversationsNotifierProvider);
+    
+    print('DEBUG MessagesScreen: Provider watched, state: ${conversationsAsync.runtimeType}');
+    print('DEBUG MessagesScreen: hasValue: ${conversationsAsync.hasValue}, hasError: ${conversationsAsync.hasError}, isLoading: ${conversationsAsync.isLoading}');
+    
+    conversationsAsync.when(
+      data: (data) {
+        print('DEBUG MessagesScreen: Got data with ${data.length} conversations');
+        return null;
+      },
+      loading: () {
+        print('DEBUG MessagesScreen: Loading...');
+        return null;
+      },
+      error: (e, s) {
+        print('DEBUG MessagesScreen: Error: $e');
+        print('DEBUG MessagesScreen: Stack: $s');
+        return null;
+      },
+    );
     
     return Scaffold(
       appBar: AppBar(
@@ -240,16 +264,21 @@ class MessagesScreen extends ConsumerWidget {
           ),
         ],
       ),
-      onTap: () {
+      onTap: () async {
+        // Get current user to determine correct navigation
+        final currentUser = ref.read(currentUserProvider).value;
+        
         // Navigate to appropriate chat screen based on type
         if (conversation.type == ConversationType.inquiry) {
-          // For inquiries, we need to get chef info
-          // This would ideally come from the conversation data
+          // Determine the chef ID based on whether current user is chef or not
+          final isCurrentUserChef = conversation.chefId == currentUser?.id;
+          final targetChefId = isCurrentUserChef ? conversation.chefId! : conversation.chefId!;
+          
           Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => ChatScreen(
-                chefId: conversation.id, // This might need adjustment
+                chefId: targetChefId,
                 chefName: conversation.otherPersonName ?? 'Kok',
                 chefImage: conversation.otherPersonImage ?? '',
               ),

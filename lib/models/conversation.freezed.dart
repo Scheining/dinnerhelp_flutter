@@ -415,11 +415,16 @@ mixin _$InquiryMessage {
   String get id => throw _privateConstructorUsedError;
   @JsonKey(name: 'inquiry_id')
   String get inquiryId => throw _privateConstructorUsedError;
+  @JsonKey(name: 'sender_id')
   String get senderId => throw _privateConstructorUsedError;
   String get content => throw _privateConstructorUsedError;
+  @JsonKey(name: 'is_read')
   bool get isRead => throw _privateConstructorUsedError;
+  @JsonKey(name: 'is_flagged')
   bool get isFlagged => throw _privateConstructorUsedError;
+  @JsonKey(name: 'flagged_reason')
   String? get flaggedReason => throw _privateConstructorUsedError;
+  @JsonKey(name: 'created_at')
   DateTime get createdAt => throw _privateConstructorUsedError;
 
   /// Serializes this InquiryMessage to a JSON map.
@@ -441,12 +446,12 @@ abstract class $InquiryMessageCopyWith<$Res> {
   $Res call(
       {String id,
       @JsonKey(name: 'inquiry_id') String inquiryId,
-      String senderId,
+      @JsonKey(name: 'sender_id') String senderId,
       String content,
-      bool isRead,
-      bool isFlagged,
-      String? flaggedReason,
-      DateTime createdAt});
+      @JsonKey(name: 'is_read') bool isRead,
+      @JsonKey(name: 'is_flagged') bool isFlagged,
+      @JsonKey(name: 'flagged_reason') String? flaggedReason,
+      @JsonKey(name: 'created_at') DateTime createdAt});
 }
 
 /// @nodoc
@@ -521,12 +526,12 @@ abstract class _$$InquiryMessageImplCopyWith<$Res>
   $Res call(
       {String id,
       @JsonKey(name: 'inquiry_id') String inquiryId,
-      String senderId,
+      @JsonKey(name: 'sender_id') String senderId,
       String content,
-      bool isRead,
-      bool isFlagged,
-      String? flaggedReason,
-      DateTime createdAt});
+      @JsonKey(name: 'is_read') bool isRead,
+      @JsonKey(name: 'is_flagged') bool isFlagged,
+      @JsonKey(name: 'flagged_reason') String? flaggedReason,
+      @JsonKey(name: 'created_at') DateTime createdAt});
 }
 
 /// @nodoc
@@ -594,12 +599,12 @@ class _$InquiryMessageImpl implements _InquiryMessage {
   const _$InquiryMessageImpl(
       {required this.id,
       @JsonKey(name: 'inquiry_id') required this.inquiryId,
-      required this.senderId,
+      @JsonKey(name: 'sender_id') required this.senderId,
       required this.content,
-      this.isRead = false,
-      this.isFlagged = false,
-      this.flaggedReason,
-      required this.createdAt});
+      @JsonKey(name: 'is_read') this.isRead = false,
+      @JsonKey(name: 'is_flagged') this.isFlagged = false,
+      @JsonKey(name: 'flagged_reason') this.flaggedReason,
+      @JsonKey(name: 'created_at') required this.createdAt});
 
   factory _$InquiryMessageImpl.fromJson(Map<String, dynamic> json) =>
       _$$InquiryMessageImplFromJson(json);
@@ -610,18 +615,21 @@ class _$InquiryMessageImpl implements _InquiryMessage {
   @JsonKey(name: 'inquiry_id')
   final String inquiryId;
   @override
+  @JsonKey(name: 'sender_id')
   final String senderId;
   @override
   final String content;
   @override
-  @JsonKey()
+  @JsonKey(name: 'is_read')
   final bool isRead;
   @override
-  @JsonKey()
+  @JsonKey(name: 'is_flagged')
   final bool isFlagged;
   @override
+  @JsonKey(name: 'flagged_reason')
   final String? flaggedReason;
   @override
+  @JsonKey(name: 'created_at')
   final DateTime createdAt;
 
   @override
@@ -673,14 +681,15 @@ class _$InquiryMessageImpl implements _InquiryMessage {
 
 abstract class _InquiryMessage implements InquiryMessage {
   const factory _InquiryMessage(
-      {required final String id,
-      @JsonKey(name: 'inquiry_id') required final String inquiryId,
-      required final String senderId,
-      required final String content,
-      final bool isRead,
-      final bool isFlagged,
-      final String? flaggedReason,
-      required final DateTime createdAt}) = _$InquiryMessageImpl;
+          {required final String id,
+          @JsonKey(name: 'inquiry_id') required final String inquiryId,
+          @JsonKey(name: 'sender_id') required final String senderId,
+          required final String content,
+          @JsonKey(name: 'is_read') final bool isRead,
+          @JsonKey(name: 'is_flagged') final bool isFlagged,
+          @JsonKey(name: 'flagged_reason') final String? flaggedReason,
+          @JsonKey(name: 'created_at') required final DateTime createdAt}) =
+      _$InquiryMessageImpl;
 
   factory _InquiryMessage.fromJson(Map<String, dynamic> json) =
       _$InquiryMessageImpl.fromJson;
@@ -691,16 +700,21 @@ abstract class _InquiryMessage implements InquiryMessage {
   @JsonKey(name: 'inquiry_id')
   String get inquiryId;
   @override
+  @JsonKey(name: 'sender_id')
   String get senderId;
   @override
   String get content;
   @override
+  @JsonKey(name: 'is_read')
   bool get isRead;
   @override
+  @JsonKey(name: 'is_flagged')
   bool get isFlagged;
   @override
+  @JsonKey(name: 'flagged_reason')
   String? get flaggedReason;
   @override
+  @JsonKey(name: 'created_at')
   DateTime get createdAt;
 
   /// Create a copy of InquiryMessage

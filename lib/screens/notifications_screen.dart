@@ -4,6 +4,10 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:go_router/go_router.dart';
 import 'package:homechef/providers/notification_provider.dart';
 import 'package:homechef/providers/booking_provider.dart';
+import 'package:homechef/providers/messaging_provider.dart';
+import 'package:homechef/providers/auth_provider.dart';
+import 'package:homechef/screens/chat_screen.dart';
+import 'package:homechef/models/conversation_simple.dart';
 import 'package:intl/intl.dart';
 
 // Notification item model
@@ -361,9 +365,34 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen>
           // Messages Tab
           Consumer(
             builder: (context, ref, child) {
-              final messages = ref.watch(messagesProvider);
+              final conversationsAsync = ref.watch(unifiedConversationsNotifierProvider);
               
-              if (messages.isEmpty) {
+              return conversationsAsync.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (error, _) => Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        size: 64,
+                        color: Colors.red.shade400,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Kunne ikke indlæse beskeder',
+                        style: theme.textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 8),
+                      TextButton(
+                        onPressed: () => ref.invalidate(unifiedConversationsNotifierProvider),
+                        child: const Text('Prøv igen'),
+                      ),
+                    ],
+                  ),
+                ),
+                data: (conversations) {
+                  if (conversations.isEmpty) {
                     return Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -393,18 +422,18 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen>
                   }
                   
                   return ListView.builder(
-                    itemCount: messages.length,
+                    itemCount: conversations.length,
                     itemBuilder: (context, index) {
-                      final message = messages[index];
+                      final conversation = conversations[index];
                       return Slidable(
-                        key: Key(message.id),
+                        key: Key(conversation.id),
                         endActionPane: ActionPane(
                           motion: const DrawerMotion(),
                           children: [
                             SlidableAction(
                               onPressed: (context) {
-                                // Archive message
-                                _archiveMessage(message.id);
+                                // Archive conversation
+                                _archiveMessage(conversation.id);
                               },
                               backgroundColor: Colors.blue,
                               foregroundColor: Colors.white,
@@ -413,8 +442,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen>
                             ),
                             SlidableAction(
                               onPressed: (context) {
-                                // Delete message
-                                _deleteMessage(message.id);
+                                // Delete conversation
+                                _deleteMessage(conversation.id);
                               },
                               backgroundColor: Colors.red,
                               foregroundColor: Colors.white,
@@ -423,24 +452,47 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen>
                             ),
                           ],
                         ),
-                        child: _MessageTile(
-                          message: message,
+                        child: _ConversationTile(
+                          conversation: conversation,
                           onTap: () async {
-                            // Show the message dialog first
-                            _handleMessageTap(context, message);
-                            
-                            // Then mark as read if it wasn't already
-                            if (!message.isRead) {
-                              // Mark message as read - would normally update Supabase
-                              await Future.delayed(const Duration(milliseconds: 500));
+                            // Navigate to chat screen based on conversation type
+                            if (conversation.type == ConversationType.inquiry) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ChatScreen(
+                                    chefId: conversation.chefId!,
+                                    chefName: conversation.otherPersonName ?? 'Kok',
+                                    chefImage: conversation.otherPersonImage ?? '',
+                                    conversationType: ConversationType.inquiry,
+                                    conversationId: conversation.inquiryId,
+                                  ),
+                                ),
+                              );
+                            } else {
+                              // For booking conversations, pass the booking ID
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ChatScreen(
+                                    chefId: conversation.chefId!,
+                                    chefName: conversation.otherPersonName ?? 'Kok',
+                                    chefImage: conversation.otherPersonImage ?? '',
+                                    conversationType: ConversationType.booking,
+                                    conversationId: conversation.bookingId,
+                                  ),
+                                ),
+                              );
                             }
                           },
                         ),
                       );
                     },
                   );
+                },
+              );
             },
-            ),
+          ),
           ],
         ),
       ),
@@ -461,6 +513,24 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen>
     showDialog(
       context: context,
       builder: (context) => _MessageDetailDialog(message: message),
+    );
+  }
+  
+  void _handleBookingConversation(BuildContext context, UnifiedConversation conversation) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
+    // Navigate to chat screen for booking conversations as well
+    // They use the same chat infrastructure
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ChatScreen(
+          chefId: conversation.chefId!,
+          chefName: conversation.otherPersonName ?? 'Ukendt',
+          chefImage: conversation.otherPersonImage ?? '',
+        ),
+      ),
     );
   }
   
@@ -709,6 +779,208 @@ class _NotificationTile extends StatelessWidget {
         return 'Notifikation';
     }
   }
+}
+
+class _ConversationTile extends StatelessWidget {
+  final UnifiedConversation conversation;
+  final Function() onTap;
+
+  const _ConversationTile({
+    required this.conversation,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final timeFormat = DateFormat('HH:mm');
+    final dateFormat = DateFormat('d MMM');
+    
+    final now = DateTime.now();
+    final lastMessageTime = conversation.lastMessageAt ?? DateTime.now();
+    final isToday = lastMessageTime.day == now.day &&
+        lastMessageTime.month == now.month &&
+        lastMessageTime.year == now.year;
+    
+    final timeText = isToday
+        ? timeFormat.format(lastMessageTime)
+        : dateFormat.format(lastMessageTime);
+
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        color: (conversation.unreadCount > 0) ? theme.colorScheme.primary.withOpacity(0.05) : null,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Stack(
+              children: [
+                CircleAvatar(
+                  radius: 20,
+                  backgroundImage: conversation.otherPersonImage?.isNotEmpty == true
+                      ? NetworkImage(conversation.otherPersonImage!)
+                      : null,
+                  backgroundColor: theme.colorScheme.primary,
+                  child: conversation.otherPersonImage?.isEmpty ?? true
+                      ? Text(
+                          conversation.otherPersonName?.isNotEmpty == true 
+                              ? conversation.otherPersonName![0].toUpperCase()
+                              : '?',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        )
+                      : null,
+                ),
+                // Type indicator badge
+                Positioned(
+                  right: -2,
+                  bottom: -2,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      color: conversation.type == ConversationType.booking
+                          ? Colors.orange
+                          : theme.colorScheme.primary,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: theme.scaffoldBackgroundColor,
+                        width: 2,
+                      ),
+                    ),
+                    child: Icon(
+                      conversation.type == ConversationType.booking
+                          ? Icons.calendar_today
+                          : Icons.chat_bubble_outline,
+                      size: 10,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          conversation.otherPersonName ?? 'Ukendt',
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: (conversation.unreadCount > 0) ? FontWeight.bold : FontWeight.normal,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Text(
+                        timeText,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: Colors.grey.shade500,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      if (conversation.type == ConversationType.booking && conversation.bookingStatus != null) ...[
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: _getBookingStatusColor(conversation.bookingStatus!),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                      ],
+                      Expanded(
+                        child: Text(
+                          conversation.lastMessage ?? 'Start en samtale',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: Colors.grey.shade700,
+                            fontWeight: (conversation.unreadCount > 0) ? FontWeight.w500 : FontWeight.normal,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            if (conversation.unreadCount > 0)
+              Container(
+                margin: const EdgeInsets.only(left: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.blue,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  conversation.unreadCount > 99 ? '99+' : conversation.unreadCount.toString(),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  String _getBookingStatusText(String status) {
+    switch (status) {
+      case 'pending':
+        return 'Afventer svar';
+      case 'accepted':
+        return 'Accepteret';
+      case 'confirmed':
+        return 'Bekræftet';
+      case 'in_progress':
+        return 'I gang';
+      case 'completed':
+        return 'Afsluttet';
+      case 'cancelled':
+        return 'Annulleret';
+      case 'disputed':
+        return 'Under tvist';
+      case 'refunded':
+        return 'Refunderet';
+      default:
+        return status;
+    }
+  }
+
+  Color _getBookingStatusColor(String status) {
+    switch (status) {
+      case 'pending':
+        return Colors.orange;
+      case 'accepted':
+      case 'confirmed':
+        return Colors.green;
+      case 'in_progress':
+        return Colors.blue;
+      case 'completed':
+        return Colors.grey;
+      case 'cancelled':
+      case 'disputed':
+      case 'refunded':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
 }
 
 class _MessageTile extends StatelessWidget {
