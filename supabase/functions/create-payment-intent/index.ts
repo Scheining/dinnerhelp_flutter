@@ -80,16 +80,26 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    // Calculate application fee (DinnerHelp's 15% service fee)
-    const applicationFeeAmount = service_fee_amount || Math.round(amount * 0.15)
+    // Calculate fees
+    // User pays: chef_rate + VAT (25%)
+    // Chef receives: chef_rate - platform_fee (15%)
+    // Platform receives: 15% of chef_rate (before VAT)
+    
+    // amount is what user pays (including VAT)
+    const baseAmount = Math.round(amount / 1.25) // Remove 25% VAT to get base chef rate
+    const platformFee = Math.round(baseAmount * 0.15) // 15% platform fee from base amount
+    const chefPayout = baseAmount - platformFee // What chef actually receives
+    
+    // For Stripe: application_fee is what platform keeps
+    const applicationFeeAmount = service_fee_amount || platformFee
 
     // Create Stripe payment intent with Connect
     const paymentIntent = await stripe.paymentIntents.create(
       {
-        amount,
+        amount, // Total amount user pays (includes VAT)
         currency: 'dkk',
         capture_method: 'manual', // Reserve funds, capture later
-        application_fee_amount: applicationFeeAmount,
+        application_fee_amount: applicationFeeAmount, // Platform's fee
         transfer_data: {
           destination: chef_stripe_account_id,
         },

@@ -336,7 +336,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final displayName = fullName.isEmpty ? 'Bruger' : fullName;
     final email = user.email ?? 'Ingen email';
     final isChef = profile?['is_chef'] ?? false;
-    final avatarUrl = profile?['profile_image_url'] as String?;
+    final avatarUrl = profile?['profile-image-url'] as String?;
     
     // Get initials for avatar
     final initials = displayName.split(' ')
@@ -673,9 +673,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     try {
       final XFile? image = await picker.pickImage(
         source: source,
-        maxWidth: 500,
-        maxHeight: 500,
-        imageQuality: 85,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 90,
       );
       
       if (image != null && context.mounted) {
@@ -696,8 +696,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         );
         
         // Upload image to Supabase storage
-        final file = File(image.path);
-        final fileName = '${userId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        // Read the file as bytes to support all image types
+        final bytes = await File(image.path).readAsBytes();
+        
+        // Get file extension from original file
+        final pathParts = image.path.split('.');
+        String fileExtension = 'jpg'; // default
+        if (pathParts.length > 1) {
+          fileExtension = pathParts.last.toLowerCase();
+          // Ensure it's a valid image extension
+          if (!['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif'].contains(fileExtension)) {
+            fileExtension = 'jpg';
+          }
+        }
+        
+        final fileName = '${userId}_${DateTime.now().millisecondsSinceEpoch}.$fileExtension';
         final filePath = 'profile-images/$fileName';
         
         final supabaseClient = supabase.Supabase.instance.client;
@@ -705,12 +718,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         // Check if user already has a profile image and delete it first
         final existingProfile = await supabaseClient
             .from('profiles')
-            .select('profile_image_url')
+            .select('profile-image-url')
             .eq('id', userId)
-            .single();
+            .maybeSingle();
             
-        if (existingProfile['profile_image_url'] != null) {
-          final existingUrl = existingProfile['profile_image_url'] as String;
+        if (existingProfile != null && existingProfile['profile-image-url'] != null) {
+          final existingUrl = existingProfile['profile-image-url'] as String;
           // Extract the file path from the URL
           final uri = Uri.parse(existingUrl);
           final pathSegments = uri.pathSegments;
@@ -723,15 +736,30 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   .remove([existingPath]);
             } catch (e) {
               // Ignore deletion errors - old file might not exist
-              print('Could not delete old profile image: $e');
+              debugPrint('Could not delete old profile image: $e');
             }
           }
         }
         
+        // Debug logging
+        debugPrint('Uploading image: $filePath');
+        debugPrint('File size: ${bytes.length} bytes');
+        debugPrint('Content type: image/${fileExtension.toLowerCase()}');
+        
         // Upload to user-images bucket in profile-images folder
+        // Use uploadBinary for better compatibility with different image formats
         final response = await supabaseClient.storage
             .from('user-images')
-            .upload(filePath, file);
+            .uploadBinary(
+              filePath, 
+              bytes,
+              fileOptions: supabase.FileOptions(
+                contentType: 'image/${fileExtension.toLowerCase()}',
+                upsert: true, // Overwrite if exists
+              ),
+            );
+        
+        debugPrint('Upload response: $response');
         
         if (response.isNotEmpty) {
           // Get public URL
@@ -739,11 +767,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               .from('user-images')
               .getPublicUrl(filePath);
           
+          debugPrint('Generated public URL: $publicUrl');
+          
           // Update profile with new profile image URL
           await supabaseClient
               .from('profiles')
-              .update({'profile_image_url': publicUrl})
+              .update({'profile-image-url': publicUrl})
               .eq('id', userId);
+          
+          debugPrint('Profile updated successfully');
           
           // Invalidate the user profile provider to refresh the data
           ref.invalidate(userProfileProvider);
@@ -762,18 +794,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             );
           }
         } else {
-          // Close loading dialog if no response
-          if (context.mounted && dialogShown) {
-            Navigator.of(context).pop();
-            dialogShown = false;
-            
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Kunne ikke uploade billede'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
+          debugPrint('Upload failed: Empty response');
+          throw Exception('Upload returned empty response');
         }
       }
     } catch (e) {
@@ -783,9 +805,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         Navigator.of(context).pop();
         
         // Show error message
+        debugPrint('Error uploading profile image: $e');
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Fejl: ${e.toString().split(':').last.trim()}'),
+            content: Text('Fejl ved upload: ${e.toString().split(':').last.trim()}'),
             backgroundColor: Colors.red,
           ),
         );

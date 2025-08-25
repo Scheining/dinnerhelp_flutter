@@ -185,7 +185,7 @@ class FavoriteChefsScreen extends ConsumerWidget {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                '${chefData['price_per_hour'] ?? 0} kr/time',
+                                '${((chefData['price_per_hour'] ?? 0) * 1.25).round()} kr/time',
                                 style: TextStyle(
                                   color: theme.colorScheme.primary,
                                   fontSize: 12,
@@ -253,7 +253,7 @@ class FavoriteChefsScreen extends ConsumerWidget {
                       distanceKm: 0,
                       rating: 0,
                       reviewCount: 0,
-                      hourlyRate: (chefData['price_per_hour'] ?? 0).toDouble(),
+                      hourlyRate: ((chefData['price_per_hour'] ?? 0) * 1.25).toDouble(),
                       experienceYears: chefData['years_experience'] ?? 0,
                       isAvailable: true,
                       isVerified: chefData['approved'] ?? false,

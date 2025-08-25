@@ -47,7 +47,14 @@ class ChefSearchRepositoryImpl implements ChefSearchRepository {
       // This is a simplified implementation
       final availableToday = chefs.where((chef) => chef.isAvailable).toList();
       
-      return Right(availableToday);
+      // Shuffle to show different order from other sections
+      final shuffled = List<Chef>.from(availableToday);
+      shuffled.shuffle();
+      
+      // Take different subset by reversing first (different from "this week")
+      final reversed = shuffled.reversed.toList();
+      
+      return Right(reversed);
     } catch (e) {
       return Left(ServerFailure('Failed to get chefs available today: $e'));
     }
@@ -59,7 +66,12 @@ class ChefSearchRepositoryImpl implements ChefSearchRepository {
       // For now, return available chefs
       // In a real implementation, this would check availability for the next 7 days
       final chefs = await _chefRepository.getAvailableChefs();
-      return Right(chefs);
+      
+      // Shuffle to show different chefs from other sections
+      final shuffled = List<Chef>.from(chefs);
+      shuffled.shuffle();
+      
+      return Right(shuffled);
     } catch (e) {
       return Left(ServerFailure('Failed to get chefs available this week: $e'));
     }
@@ -74,6 +86,14 @@ class ChefSearchRepositoryImpl implements ChefSearchRepository {
       final topRated = chefs
           .where((chef) => chef.rating >= 4.5 && chef.isAvailable)
           .toList();
+      
+      // If no high-rated chefs, show random available chefs instead
+      if (topRated.isEmpty && chefs.isNotEmpty) {
+        final randomChefs = List<Chef>.from(chefs);
+        randomChefs.shuffle();
+        // Return different chefs from the regular available list
+        return Right(randomChefs.skip(5).take(10).toList());
+      }
       
       topRated.sort((a, b) => b.rating.compareTo(a.rating));
       

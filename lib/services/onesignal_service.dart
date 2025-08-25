@@ -30,7 +30,17 @@ class OneSignalService {
   /// Request permission for push notifications
   Future<bool> requestPermission() async {
     try {
-      return await OneSignal.Notifications.requestPermission(true);
+      final granted = await OneSignal.Notifications.requestPermission(true);
+      debugPrint('OneSignal permission request result: $granted');
+      
+      // Check if permission was actually granted
+      if (granted) {
+        // Force update subscription status
+        OneSignal.User.pushSubscription.optIn();
+        debugPrint('OneSignal subscription opted in');
+      }
+      
+      return granted;
     } catch (e) {
       debugPrint('OneSignal permission request failed: $e');
       return false;
@@ -149,8 +159,9 @@ class OneSignalService {
     // Notification foreground listener
     OneSignal.Notifications.addForegroundWillDisplayListener((event) {
       debugPrint('OneSignal notification will display in foreground: ${event.notification.notificationId}');
-      // You can modify the notification here before it's displayed
-      event.preventDefault(); // Remove this if you want to display the notification
+      // Let the notification display (removed preventDefault)
+      // You can still modify the notification here if needed
+      // event.notification to access notification data
     });
 
     // Permission observer

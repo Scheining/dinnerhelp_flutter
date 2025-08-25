@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:homechef/models/chef.dart';
@@ -14,26 +15,56 @@ final chefRepositoryProvider = Provider<ChefRepository>((ref) {
   return ChefRepository(supabaseClient: supabaseClient);
 });
 
-// All chefs provider
-final chefsProvider = FutureProvider<List<Chef>>((ref) async {
+// All chefs provider with caching (30 minutes)
+final chefsProvider = FutureProvider.autoDispose<List<Chef>>((ref) async {
+  // Keep data alive for 30 minutes after last use
+  ref.keepAlive();
+  
+  // Refresh every 30 minutes
+  final timer = Timer(const Duration(minutes: 30), () {
+    ref.invalidateSelf();
+  });
+  ref.onDispose(() => timer.cancel());
+  
   final repository = ref.watch(chefRepositoryProvider);
-  return repository.getChefs();
+  return repository.getChefs(limit: 50);  // Load first 50 chefs
 });
 
-// Featured chefs provider
-final featuredChefsProvider = FutureProvider<List<Chef>>((ref) async {
+// Featured chefs provider with caching
+final featuredChefsProvider = FutureProvider.autoDispose<List<Chef>>((ref) async {
+  ref.keepAlive();
+  
+  final timer = Timer(const Duration(minutes: 30), () {
+    ref.invalidateSelf();
+  });
+  ref.onDispose(() => timer.cancel());
+  
   final repository = ref.watch(chefRepositoryProvider);
   return repository.getFeaturedChefs();
 });
 
-// Available chefs provider
-final availableChefsProvider = FutureProvider<List<Chef>>((ref) async {
+// Available chefs provider with caching
+final availableChefsProvider = FutureProvider.autoDispose<List<Chef>>((ref) async {
+  ref.keepAlive();
+  
+  final timer = Timer(const Duration(minutes: 30), () {
+    ref.invalidateSelf();
+  });
+  ref.onDispose(() => timer.cancel());
+  
   final repository = ref.watch(chefRepositoryProvider);
   return repository.getAvailableChefs();
 });
 
-// Popular chefs provider
-final popularChefsProvider = FutureProvider<List<Chef>>((ref) async {
+// Popular chefs provider with caching
+final popularChefsProvider = FutureProvider.autoDispose<List<Chef>>((ref) async {
+  ref.keepAlive();
+  
+  final timer = Timer(const Duration(minutes: 30), () {
+    ref.invalidateSelf();
+  });
+  ref.onDispose(() => timer.cancel());
+  
   final repository = ref.watch(chefRepositoryProvider);
   return repository.getPopularChefs();
 });

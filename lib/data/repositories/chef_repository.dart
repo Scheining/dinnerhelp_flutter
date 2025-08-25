@@ -20,73 +20,44 @@ class ChefRepository {
     return fullName;
   }
 
-  Future<List<Chef>> getChefs() async {
+  Future<List<Chef>> getChefs({int limit = 50, int offset = 0}) async {
     try {
-      // First fetch chefs
-      final chefsResponse = await _supabaseClient
-          .from('chefs')
+      // Single optimized query using the view
+      final response = await _supabaseClient
+          .from('chef_listings')
           .select('*')
-          .eq('approved', true)
-          .eq('is_active', true);
-      
-      // Then fetch profiles separately
-      final List<dynamic> response = [];
-      for (final chef in chefsResponse) {
-        final profileResponse = await _supabaseClient
-            .from('profiles')
-            .select('first_name, last_name, email')
-            .eq('id', chef['id'])
-            .maybeSingle();
-        
-        final chefWithProfile = {...chef};
-        chefWithProfile['profiles'] = profileResponse;
-        response.add(chefWithProfile);
-      }
+          .order('avg_rating', ascending: false)
+          .range(offset, offset + limit - 1);
 
-      final List<dynamic> chefsData = response as List<dynamic>;
       final List<Chef> chefs = [];
-
-      for (final chefData in chefsData) {
-        // Get ratings for this chef
-        final ratingsResponse = await _supabaseClient
-            .from('chef_ratings')
-            .select('rating')
-            .eq('chef_id', chefData['id'])
-            .eq('status', 'approved');
-
-        double averageRating = 0.0;
-        int reviewCount = 0;
-
-        if (ratingsResponse != null && ratingsResponse is List) {
-          reviewCount = ratingsResponse.length;
-          if (reviewCount > 0) {
-            final totalRating = ratingsResponse
-                .map((r) => r['rating'] as int)
-                .reduce((a, b) => a + b);
-            averageRating = totalRating / reviewCount;
-          }
-        }
-
-        // Get location from postal code with city name
+      
+      for (final chefData in response) {
+        // Build chef name from profile data
+        final firstName = chefData['first_name'] ?? '';
+        final lastName = chefData['last_name'] ?? '';
+        final fullName = '$firstName $lastName'.trim();
+        final name = fullName.isEmpty ? (chefData['title'] ?? 'Chef') : fullName;
+        
+        // Get location from postal code
         String location = PostalCodeMapper.formatLocation(chefData['postal_code']);
 
         chefs.add(Chef(
           id: chefData['id'],
-          name: _getChefName(chefData),
+          name: name,
           profileImage: chefData['profile_image_url'] ?? '',
           headerImage: chefData['profile_background_url'] ?? '',
-          rating: averageRating,
-          reviewCount: reviewCount,
+          rating: (chefData['avg_rating'] ?? 0).toDouble(),
+          reviewCount: chefData['review_count'] ?? 0,
           cuisineTypes: List<String>.from(chefData['cuisines'] ?? []),
-          hourlyRate: (chefData['price_per_hour'] ?? chefData['hourly_rate'] ?? 0).toDouble(),
+          hourlyRate: ((chefData['price_per_hour'] ?? chefData['hourly_rate'] ?? 0) * 1.25).toDouble(),
           location: location,
-          bio: chefData['bio'] ?? chefData['about'] ?? '',
+          bio: chefData['bio'] ?? '',
           experienceYears: chefData['years_experience'] ?? 0,
           languages: List<String>.from(chefData['languages'] ?? []),
           dietarySpecialties: List<String>.from(chefData['dietary_specialties'] ?? []),
           isVerified: chefData['certified_chef'] ?? false,
           isAvailable: chefData['is_active'] ?? false,
-          distanceKm: 0.0, // Will be calculated based on user location
+          distanceKm: 0.0,
         ));
       }
 
@@ -100,7 +71,17 @@ class ChefRepository {
   Future<List<Chef>> getFeaturedChefs() async {
     // Get chefs with high ratings
     final chefs = await getChefs();
+    
+    // Sort by rating
     chefs.sort((a, b) => b.rating.compareTo(a.rating));
+    
+    // If no chefs have ratings (all are 0), shuffle to show random chefs
+    if (chefs.isEmpty || chefs.every((chef) => chef.rating == 0)) {
+      chefs.shuffle();
+      return chefs.take(10).toList();
+    }
+    
+    // Return top rated chefs
     return chefs.take(10).toList();
   }
 
@@ -112,62 +93,49 @@ class ChefRepository {
   Future<List<Chef>> getPopularChefs() async {
     // Get chefs with rating >= 4.8
     final chefs = await getChefs();
-    return chefs.where((chef) => chef.rating >= 4.8).toList();
+    final popularChefs = chefs.where((chef) => chef.rating >= 4.8).toList();
+    
+    // If no highly rated chefs, return random selection
+    if (popularChefs.isEmpty) {
+      final randomChefs = List<Chef>.from(chefs);
+      randomChefs.shuffle();
+      return randomChefs.take(8).toList();
+    }
+    
+    return popularChefs;
   }
 
   Future<Chef?> getChefById(String id) async {
     try {
-      final chefResponse = await _supabaseClient
-          .from('chefs')
+      // Use the optimized view for single chef query
+      final response = await _supabaseClient
+          .from('chef_listings')
           .select('*')
-          .eq('id', id)
-          .single();
-          
-      final profileResponse = await _supabaseClient
-          .from('profiles')
-          .select('first_name, last_name, email')
           .eq('id', id)
           .maybeSingle();
           
-      final response = {...chefResponse};
-      response['profiles'] = profileResponse;
-
       if (response == null) return null;
 
-      // Get ratings
-      final ratingsResponse = await _supabaseClient
-          .from('chef_ratings')
-          .select('rating')
-          .eq('chef_id', id)
-          .eq('status', 'approved');
-
-      double averageRating = 0.0;
-      int reviewCount = 0;
-
-      if (ratingsResponse != null && ratingsResponse is List) {
-        reviewCount = ratingsResponse.length;
-        if (reviewCount > 0) {
-          final totalRating = ratingsResponse
-              .map((r) => r['rating'] as int)
-              .reduce((a, b) => a + b);
-          averageRating = totalRating / reviewCount;
-        }
-      }
-
+      // Build chef name from profile data
+      final firstName = response['first_name'] ?? '';
+      final lastName = response['last_name'] ?? '';
+      final fullName = '$firstName $lastName'.trim();
+      final name = fullName.isEmpty ? (response['title'] ?? 'Chef') : fullName;
+      
       // Get location from postal code with city name
       String location = PostalCodeMapper.formatLocation(response['postal_code']);
 
       return Chef(
         id: response['id'],
-        name: _getChefName(response),
+        name: name,
         profileImage: response['profile_image_url'] ?? '',
         headerImage: response['profile_background_url'] ?? '',
-        rating: averageRating,
-        reviewCount: reviewCount,
+        rating: (response['avg_rating'] ?? 0).toDouble(),
+        reviewCount: response['review_count'] ?? 0,
         cuisineTypes: List<String>.from(response['cuisines'] ?? []),
-        hourlyRate: (response['price_per_hour'] ?? response['hourly_rate'] ?? 0).toDouble(),
+        hourlyRate: ((response['price_per_hour'] ?? response['hourly_rate'] ?? 0) * 1.25).toDouble(),
         location: location,
-        bio: response['bio'] ?? response['about'] ?? '',
+        bio: response['bio'] ?? '',
         experienceYears: response['years_experience'] ?? 0,
         languages: List<String>.from(response['languages'] ?? []),
         dietarySpecialties: List<String>.from(response['dietary_specialties'] ?? []),
