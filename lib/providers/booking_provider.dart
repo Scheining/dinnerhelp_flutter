@@ -14,8 +14,11 @@ final bookingRepositoryProvider = Provider<BookingRepository>((ref) {
   return BookingRepository(supabaseClient: supabaseClient);
 });
 
-// Current user ID provider (should be set from auth state)
-final currentUserIdProvider = StateProvider<String?>((ref) => null);
+// Current user ID provider (automatically set from auth state)
+final currentUserIdProvider = StateProvider<String?>((ref) {
+  final supabase = ref.watch(supabaseClientProvider);
+  return supabase.auth.currentUser?.id;
+});
 
 // Current chef ID provider (for chef users)
 final currentChefIdProvider = StateProvider<String?>((ref) => null);

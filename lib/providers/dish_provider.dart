@@ -13,9 +13,9 @@ final newestDishesProvider = FutureProvider<List<Dish>>((ref) async {
         .from('dishes')
         .select('''
           *,
-          chefs!inner(
+          chefs(
             id,
-            profiles!inner(
+            profiles(
               first_name,
               last_name
             )
@@ -68,87 +68,16 @@ final popularDishesProvider = FutureProvider<List<Dish>>((ref) async {
   final currentUser = ref.watch(currentUserProvider).value;
   
   try {
-    // Get dishes with favorite count
+    // Get dishes with favorite count using the database function
     final response = await supabaseClient.rpc('get_popular_dishes', params: {
       'limit_count': 10,
-      'user_id': currentUser?.id,
+      'p_user_id': currentUser?.id,
     });
-    
-    if (response == null) {
-      // If the function doesn't exist, it should be created via a migration
-      // The migration has been applied, so this shouldn't happen
-      // For now, fallback to simple query
-      throw Exception('Function get_popular_dishes does not exist');
-    }
     
     return (response as List).map((json) => Dish.fromJson(json)).toList();
   } catch (e) {
     // Error fetching popular dishes: $e
-    
-    // Fallback to simple query
-    try {
-      final response = await supabaseClient
-          .from('dishes')
-          .select('''
-            *,
-            chefs!inner(
-              id,
-              profiles!inner(
-                first_name,
-                last_name
-              )
-            )
-          ''')
-          .eq('is_active', true)
-          .limit(10);
-      
-      final dishes = <Dish>[];
-      
-      for (final dishData in response as List) {
-        // Get favorite count
-        final favoriteCountResponse = await supabaseClient
-            .from('user_favorite_dishes')
-            .select()
-            .eq('dish_id', dishData['id']);
-        
-        final favoriteCount = (favoriteCountResponse as List).length;
-        
-        // Get favorite status if user is logged in
-        bool isFavorited = false;
-        if (currentUser != null) {
-          final favoriteResponse = await supabaseClient
-              .from('user_favorite_dishes')
-              .select()
-              .eq('user_id', currentUser.id)
-              .eq('dish_id', dishData['id'])
-              .maybeSingle();
-          
-          isFavorited = favoriteResponse != null;
-        }
-        
-        // Extract chef name
-        String? chefName;
-        if (dishData['chefs'] != null && dishData['chefs']['profiles'] != null) {
-          final profile = dishData['chefs']['profiles'];
-          chefName = '${profile['first_name']} ${profile['last_name']}';
-        }
-        
-        dishes.add(Dish.fromJson({
-          ...dishData,
-          'chef_name': chefName,
-          'favorite_count': favoriteCount,
-          'is_favorited': isFavorited,
-        }));
-      }
-      
-      // Sort by favorite count
-      dishes.sort((a, b) => (b.favoriteCount ?? 0).compareTo(a.favoriteCount ?? 0));
-      
-      return dishes;
-    } catch (e2) {
-      // Fallback error fetching popular dishes: $e2
-      return [];
-    }
+    return [];
   }
 });
 
@@ -158,67 +87,16 @@ final mostOrderedDishesProvider = FutureProvider<List<Dish>>((ref) async {
   final currentUser = ref.watch(currentUserProvider).value;
   
   try {
-    // Get dishes with order count
+    // Get dishes with order count using the database function
     final response = await supabaseClient.rpc('get_most_ordered_dishes', params: {
       'limit_count': 10,
-      'user_id': currentUser?.id,
+      'p_user_id': currentUser?.id,
     });
-    
-    if (response == null) {
-      // If the function doesn't exist, it should be created via a migration
-      // For now, fallback to simple query
-      throw Exception('Function get_most_ordered_dishes does not exist');
-    }
     
     return (response as List).map((json) => Dish.fromJson(json)).toList();
   } catch (e) {
     // Error fetching most ordered dishes: $e
-    
-    // Fallback to simple query
-    try {
-      // Direct SQL not supported in Flutter client - use simpler approach
-      final response = await supabaseClient
-          .from('dishes')
-          .select('''
-            *,
-            chefs!inner(
-              id,
-              profiles!inner(
-                first_name,
-                last_name
-              )
-            )
-          ''')
-          .eq('is_active', true)
-          .limit(10);
-      
-      final dishes = <Dish>[];
-      
-      for (final dishData in response as List) {
-        // Get favorite status if user is logged in
-        bool isFavorited = false;
-        if (currentUser != null) {
-          final favoriteResponse = await supabaseClient
-              .from('user_favorite_dishes')
-              .select()
-              .eq('user_id', currentUser.id)
-              .eq('dish_id', dishData['id'])
-              .maybeSingle();
-          
-          isFavorited = favoriteResponse != null;
-        }
-        
-        dishes.add(Dish.fromJson({
-          ...dishData,
-          'is_favorited': isFavorited,
-        }));
-      }
-      
-      return dishes;
-    } catch (e2) {
-      // Fallback error fetching most ordered dishes: $e2
-      return [];
-    }
+    return [];
   }
 });
 

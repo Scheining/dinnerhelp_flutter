@@ -121,13 +121,16 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         colorSelected: _getSelectedIconColor(context),
         indexSelected: currentIndex,
         onTap: (int index) => _onItemTapped(context, index),
-        top: -25, // Creates the deep outside effect
+        top: -32, // Float selected item above the navigation bar
         animated: true,
         itemStyle: ItemStyle.circle,
         chipStyle: ChipStyle(
           notchSmoothness: NotchSmoothness.verySmoothEdge,
           background: _getSelectedBackgroundColor(context),
         ),
+        iconSize: 24, // Standardize icon size
+        height: 40, // Reduced height to minimize bottom space
+        pad: 0, // Remove padding
       ),
     );
   }

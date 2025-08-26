@@ -47,21 +47,46 @@ class BookingRepository {
   // Get bookings for a user
   Future<List<Booking>> getUserBookings(String userId) async {
     try {
+      // First get bookings - explicitly select columns
       final response = await _supabaseClient
           .from('bookings')
-          .select('''
-            *,
-            chefs!inner (
+          .select('id, user_id, chef_id, date, start_time, end_time, status, number_of_guests, total_amount, payment_status, tip_amount, platform_fee, stripe_payment_intent_id, chef_review, user_review, created_at, updated_at, address, notes, cancellation_reason, cancelled_at')
+          .eq('user_id', userId)
+          .order('created_at', ascending: false);
+
+      // Get unique chef IDs
+      final chefIds = response.map((b) => b['chef_id']).where((id) => id != null).toSet().toList();
+      
+      // Fetch chef data separately
+      Map<String, dynamic> chefDataMap = {};
+      if (chefIds.isNotEmpty) {
+        final chefsResponse = await _supabaseClient
+            .from('chefs')
+            .select('''
+              id,
+              profile_image_url,
               profiles (
                 first_name,
                 last_name
               )
-            )
-          ''')
-          .eq('user_id', userId)
-          .order('created_at', ascending: false);
+            ''')
+            .inFilter('id', chefIds);
+        
+        for (final chef in chefsResponse) {
+          chefDataMap[chef['id']] = chef;
+        }
+      }
+      
+      // Merge chef data into bookings
+      final bookingsWithChefs = response.map((booking) {
+        final chefData = chefDataMap[booking['chef_id']];
+        return {
+          ...booking,
+          'chefs': chefData,
+        };
+      }).toList();
 
-      return response.map<Booking>((booking) => _mapToBooking(booking)).toList();
+      return bookingsWithChefs.map<Booking>((booking) => _mapToBooking(booking)).toList();
     } catch (e) {
       print('Error fetching user bookings: $e');
       rethrow;
@@ -71,19 +96,53 @@ class BookingRepository {
   // Get bookings for a chef
   Future<List<Booking>> getChefBookings(String chefId) async {
     try {
+      // First get bookings - explicitly select columns
       final response = await _supabaseClient
           .from('bookings')
+          .select('id, user_id, chef_id, date, start_time, end_time, status, number_of_guests, total_amount, payment_status, tip_amount, platform_fee, stripe_payment_intent_id, chef_review, user_review, created_at, updated_at, address, notes, cancellation_reason, cancelled_at')
+          .eq('chef_id', chefId)
+          .order('created_at', ascending: false);
+
+      // Get unique user IDs
+      final userIds = response.map((b) => b['user_id']).where((id) => id != null).toSet().toList();
+      
+      // Fetch user data separately
+      Map<String, dynamic> userDataMap = {};
+      if (userIds.isNotEmpty) {
+        final usersResponse = await _supabaseClient
+            .from('profiles')
+            .select('id, first_name, last_name')
+            .inFilter('id', userIds);
+        
+        for (final user in usersResponse) {
+          userDataMap[user['id']] = user;
+        }
+      }
+      
+      // Merge user data into bookings and also add chef data since we know the chefId
+      final chefResponse = await _supabaseClient
+          .from('chefs')
           .select('''
-            *,
-            profiles!inner (
+            id,
+            profile_image_url,
+            profiles (
               first_name,
               last_name
             )
           ''')
-          .eq('chef_id', chefId)
-          .order('created_at', ascending: false);
+          .eq('id', chefId)
+          .maybeSingle();
+      
+      final bookingsWithData = response.map((booking) {
+        final userData = userDataMap[booking['user_id']];
+        return {
+          ...booking,
+          'profiles': userData,
+          'chefs': chefResponse,
+        };
+      }).toList();
 
-      return response.map<Booking>((booking) => _mapToBooking(booking)).toList();
+      return bookingsWithData.map<Booking>((booking) => _mapToBooking(booking)).toList();
     } catch (e) {
       print('Error fetching chef bookings: $e');
       rethrow;
@@ -95,23 +154,46 @@ class BookingRepository {
     try {
       final response = await _supabaseClient
           .from('bookings')
-          .select('''
-            *,
-            chefs (
+          .select('id, user_id, chef_id, date, start_time, end_time, status, number_of_guests, total_amount, payment_status, tip_amount, platform_fee, stripe_payment_intent_id, chef_review, user_review, created_at, updated_at, address, notes, cancellation_reason, cancelled_at')
+          .eq('id', bookingId)
+          .maybeSingle();
+
+      if (response == null) return null;
+      
+      // Fetch chef data if booking has chef_id
+      if (response['chef_id'] != null) {
+        final chefResponse = await _supabaseClient
+            .from('chefs')
+            .select('''
+              id,
+              profile_image_url,
               profiles (
                 first_name,
                 last_name
               )
-            ),
-            profiles (
-              first_name,
-              last_name
-            )
-          ''')
-          .eq('id', bookingId)
-          .maybeSingle();
+            ''')
+            .eq('id', response['chef_id'])
+            .maybeSingle();
+        
+        if (chefResponse != null) {
+          response['chefs'] = chefResponse;
+        }
+      }
+      
+      // Fetch user profile data if needed
+      if (response['user_id'] != null) {
+        final userResponse = await _supabaseClient
+            .from('profiles')
+            .select('first_name, last_name')
+            .eq('id', response['user_id'])
+            .maybeSingle();
+        
+        if (userResponse != null) {
+          response['profiles'] = userResponse;
+        }
+      }
 
-      return response != null ? _mapToBooking(response) : null;
+      return _mapToBooking(response);
     } catch (e) {
       print('Error fetching booking by ID: $e');
       rethrow;
@@ -348,14 +430,28 @@ class BookingRepository {
 
   // Helper method to map database response to Booking model
   Booking _mapToBooking(Map<String, dynamic> data) {
-    // Extract chef name
+    // Debug print to see the data structure
+    print('DEBUG: Booking data structure: $data');
+    
+    // Extract chef name from the proper path
     String chefName = 'Unknown Chef';
-    if (data['chefs'] != null && data['chefs']['profiles'] != null) {
-      final profiles = data['chefs']['profiles'];
-      final firstName = profiles['first_name'] ?? '';
-      final lastName = profiles['last_name'] ?? '';
-      chefName = '$firstName $lastName'.trim();
-      if (chefName.isEmpty) chefName = 'Chef ${data['chef_id']?.toString().substring(0, 8) ?? ''}';
+    if (data['chefs'] != null) {
+      print('DEBUG: Chef data: ${data['chefs']}');
+      
+      // Check if profiles data exists
+      if (data['chefs']['profiles'] != null) {
+        final profiles = data['chefs']['profiles'];
+        print('DEBUG: Chef profiles data: $profiles');
+        
+        final firstName = profiles['first_name'] ?? '';
+        final lastName = profiles['last_name'] ?? '';
+        chefName = '$firstName $lastName'.trim();
+        if (chefName.isEmpty) chefName = 'Chef ${data['chef_id']?.toString().substring(0, 8) ?? ''}';
+      } else {
+        print('DEBUG: No profiles data found in chefs');
+      }
+    } else {
+      print('DEBUG: No chefs data found');
     }
 
     // Parse date and time

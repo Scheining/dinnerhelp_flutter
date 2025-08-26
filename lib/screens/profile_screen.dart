@@ -74,8 +74,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         child: Center(child: CircularProgressIndicator()),
                       ),
                     ),
-                    error: (_, __) => _buildProfileHeader(context, currentUser, null),
-                    data: (profile) => _buildProfileHeader(context, currentUser, profile),
+                    error: (_, __) => _buildProfileHeader(context, currentUser, null, ref),
+                    data: (profile) => _buildProfileHeader(context, currentUser, profile, ref),
                   ),
                 ),
                 
@@ -326,7 +326,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  Widget _buildProfileHeader(BuildContext context, supabase.User user, Map<String, dynamic>? profile) {
+  Widget _buildProfileHeader(BuildContext context, supabase.User user, Map<String, dynamic>? profile, WidgetRef ref) {
     final theme = Theme.of(context);
     
     // Extract user data
@@ -351,7 +351,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           alignment: Alignment.bottomRight,
           children: [
             GestureDetector(
-              onTap: () => _showImagePicker(context, user.id),
+              onTap: () => _showImagePicker(context, user.id, ref),
               child: Stack(
                 children: [
                   CircleAvatar(
@@ -632,10 +632,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  void _showImagePicker(BuildContext context, String userId) {
+  void _showImagePicker(BuildContext context, String userId, WidgetRef ref) {
     showModalBottomSheet(
       context: context,
-      builder: (context) => SafeArea(
+      builder: (modalContext) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -643,22 +643,28 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               leading: const Icon(Icons.photo_library),
               title: const Text('Vælg fra galleri'),
               onTap: () {
-                Navigator.of(context).pop();
-                _pickImage(context, ImageSource.gallery, userId);
+                Navigator.of(modalContext).pop();
+                // Use a small delay to ensure modal is closed before picking
+                Future.delayed(const Duration(milliseconds: 100), () {
+                  _pickImage(context, ImageSource.gallery, userId, ref);
+                });
               },
             ),
             ListTile(
               leading: const Icon(Icons.camera_alt),
               title: const Text('Tag et billede'),
               onTap: () {
-                Navigator.of(context).pop();
-                _pickImage(context, ImageSource.camera, userId);
+                Navigator.of(modalContext).pop();
+                // Use a small delay to ensure modal is closed before picking
+                Future.delayed(const Duration(milliseconds: 100), () {
+                  _pickImage(context, ImageSource.camera, userId, ref);
+                });
               },
             ),
             ListTile(
               leading: const Icon(Icons.cancel),
               title: const Text('Annuller'),
-              onTap: () => Navigator.of(context).pop(),
+              onTap: () => Navigator.of(modalContext).pop(),
             ),
           ],
         ),
@@ -666,151 +672,198 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  Future<void> _pickImage(BuildContext context, ImageSource source, String userId) async {
+  Future<void> _pickImage(BuildContext context, ImageSource source, String userId, WidgetRef ref) async {
     final ImagePicker picker = ImagePicker();
     bool dialogShown = false;
     
     try {
+      debugPrint('Starting image picker...');
+      
+      // Pick image with size limits
+      // The PNG warning is harmless - iOS just can't compress PNGs but still returns the image
       final XFile? image = await picker.pickImage(
         source: source,
         maxWidth: 1024,
         maxHeight: 1024,
-        imageQuality: 90,
+        imageQuality: 85,  // This only works for JPEG, but that's OK
       );
       
-      if (image != null && context.mounted) {
-        // Show loading indicator
-        dialogShown = true;
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => PopScope(
-            canPop: false,
-            child: Container(
-              color: Colors.black.withValues(alpha: 0.5),
-              child: const Center(
-                child: CircularProgressIndicator(),
-              ),
+      debugPrint('Image picked: ${image?.path}');
+      
+      if (image == null) {
+        debugPrint('Image is null, returning');
+        return;
+      }
+      
+      debugPrint('Context mounted: ${context.mounted}');
+      
+      // Check if context is still mounted
+      if (!context.mounted) {
+        debugPrint('Context not mounted after image picker, aborting');
+        return;
+      }
+      
+      // Show loading indicator
+      debugPrint('Showing loading dialog...');
+      dialogShown = true;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext dialogContext) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+      
+      debugPrint('Loading dialog shown, reading image file...');
+      
+      // Read the image file
+      final bytes = await File(image.path).readAsBytes();
+      debugPrint('Read ${bytes.length} bytes from image file');
+      
+      // Get the file extension from the original file
+      final pathParts = image.path.split('.');
+      String fileExtension = 'jpg'; // default
+      if (pathParts.length > 1) {
+        fileExtension = pathParts.last.toLowerCase();
+        // Ensure it's a valid image extension
+        if (!['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif'].contains(fileExtension)) {
+          fileExtension = 'jpg';
+        }
+      }
+      
+      // For HEIC/HEIF files on iOS, the image picker automatically converts to JPEG
+      // So we should use jpg extension for those
+      if (fileExtension == 'heic' || fileExtension == 'heif') {
+        fileExtension = 'jpg';
+      }
+      
+      final fileName = '${userId}_${DateTime.now().millisecondsSinceEpoch}.$fileExtension';
+      final filePath = 'profile-images/$fileName';
+      
+      final supabaseClient = supabase.Supabase.instance.client;
+      
+      // Check if user already has a profile image and delete it first
+      final existingProfile = await supabaseClient
+          .from('profiles')
+          .select('profile-image-url')
+          .eq('id', userId)
+          .maybeSingle();
+          
+      if (existingProfile != null && existingProfile['profile-image-url'] != null) {
+        final existingUrl = existingProfile['profile-image-url'] as String;
+        // Extract the file path from the URL
+        final uri = Uri.parse(existingUrl);
+        final pathSegments = uri.pathSegments;
+        if (pathSegments.length > 2 && pathSegments.contains('user-images')) {
+          final existingPath = pathSegments.sublist(pathSegments.indexOf('user-images') + 1).join('/');
+          try {
+            // Try to delete the old image
+            await supabaseClient.storage
+                .from('user-images')
+                .remove([existingPath]);
+          } catch (e) {
+            // Ignore deletion errors - old file might not exist
+            debugPrint('Could not delete old profile image: $e');
+          }
+        }
+      }
+      
+      // Debug logging
+      debugPrint('Uploading image: $filePath');
+      debugPrint('File size: ${bytes.length} bytes');
+      debugPrint('Content type: image/$fileExtension');
+      
+      // Upload to user-images bucket in profile-images folder
+      final response = await supabaseClient.storage
+          .from('user-images')
+          .uploadBinary(
+            filePath, 
+            bytes,
+            fileOptions: supabase.FileOptions(
+              contentType: 'image/$fileExtension',
+              upsert: true, // Overwrite if exists
             ),
-          ),
-        );
-        
-        // Upload image to Supabase storage
-        // Read the file as bytes to support all image types
-        final bytes = await File(image.path).readAsBytes();
-        
-        // Get file extension from original file
-        final pathParts = image.path.split('.');
-        String fileExtension = 'jpg'; // default
-        if (pathParts.length > 1) {
-          fileExtension = pathParts.last.toLowerCase();
-          // Ensure it's a valid image extension
-          if (!['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif'].contains(fileExtension)) {
-            fileExtension = 'jpg';
-          }
-        }
-        
-        final fileName = '${userId}_${DateTime.now().millisecondsSinceEpoch}.$fileExtension';
-        final filePath = 'profile-images/$fileName';
-        
-        final supabaseClient = supabase.Supabase.instance.client;
-        
-        // Check if user already has a profile image and delete it first
-        final existingProfile = await supabaseClient
-            .from('profiles')
-            .select('profile-image-url')
-            .eq('id', userId)
-            .maybeSingle();
-            
-        if (existingProfile != null && existingProfile['profile-image-url'] != null) {
-          final existingUrl = existingProfile['profile-image-url'] as String;
-          // Extract the file path from the URL
-          final uri = Uri.parse(existingUrl);
-          final pathSegments = uri.pathSegments;
-          if (pathSegments.length > 2 && pathSegments.contains('user-images')) {
-            final existingPath = pathSegments.sublist(pathSegments.indexOf('user-images') + 1).join('/');
-            try {
-              // Try to delete the old image
-              await supabaseClient.storage
-                  .from('user-images')
-                  .remove([existingPath]);
-            } catch (e) {
-              // Ignore deletion errors - old file might not exist
-              debugPrint('Could not delete old profile image: $e');
-            }
-          }
-        }
-        
-        // Debug logging
-        debugPrint('Uploading image: $filePath');
-        debugPrint('File size: ${bytes.length} bytes');
-        debugPrint('Content type: image/${fileExtension.toLowerCase()}');
-        
-        // Upload to user-images bucket in profile-images folder
-        // Use uploadBinary for better compatibility with different image formats
-        final response = await supabaseClient.storage
+          );
+      
+      debugPrint('Upload response: $response');
+      
+      if (response.isNotEmpty) {
+        // Get public URL
+        final publicUrl = supabaseClient.storage
             .from('user-images')
-            .uploadBinary(
-              filePath, 
-              bytes,
-              fileOptions: supabase.FileOptions(
-                contentType: 'image/${fileExtension.toLowerCase()}',
-                upsert: true, // Overwrite if exists
-              ),
-            );
+            .getPublicUrl(filePath);
         
-        debugPrint('Upload response: $response');
+        debugPrint('Generated public URL: $publicUrl');
         
-        if (response.isNotEmpty) {
-          // Get public URL
-          final publicUrl = supabaseClient.storage
-              .from('user-images')
-              .getPublicUrl(filePath);
-          
-          debugPrint('Generated public URL: $publicUrl');
-          
-          // Update profile with new profile image URL
-          await supabaseClient
-              .from('profiles')
-              .update({'profile-image-url': publicUrl})
-              .eq('id', userId);
-          
-          debugPrint('Profile updated successfully');
-          
-          // Invalidate the user profile provider to refresh the data
-          ref.invalidate(userProfileProvider);
-          
-          // Close loading dialog
-          if (context.mounted && dialogShown) {
-            Navigator.of(context).pop();
-            dialogShown = false;
-            
-            // Show success message
+        // Update profile with new profile image URL
+        await supabaseClient
+            .from('profiles')
+            .update({'profile-image-url': publicUrl})
+            .eq('id', userId);
+        
+        debugPrint('Profile updated successfully');
+        
+        // Close loading dialog first before invalidating provider
+        if (context.mounted && dialogShown) {
+          debugPrint('Closing loading dialog...');
+          // Use the root navigator to ensure we're popping the dialog
+          Navigator.of(context, rootNavigator: true).pop();
+          dialogShown = false;
+          debugPrint('Loading dialog closed');
+        }
+        
+        // Invalidate the user profile provider to refresh the data
+        debugPrint('Invalidating user profile provider...');
+        ref.invalidate(userProfileProvider);
+        debugPrint('Provider invalidated');
+        
+        // Show success message after a small delay to ensure dialog is closed
+        if (context.mounted) {
+          await Future.delayed(const Duration(milliseconds: 100));
+          if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('Profilbillede opdateret'),
                 backgroundColor: Colors.green,
+                duration: Duration(seconds: 2),
               ),
             );
           }
-        } else {
-          debugPrint('Upload failed: Empty response');
-          throw Exception('Upload returned empty response');
         }
+      } else {
+        debugPrint('Upload failed: Empty response');
+        throw Exception('Upload returned empty response');
       }
-    } catch (e) {
+    } catch (e, stack) {
+      // Log detailed error information
+      debugPrint('Error uploading profile image: $e');
+      debugPrint('Stack trace: $stack');
+      
       // Close loading dialog if open
       if (context.mounted && dialogShown) {
-        // Use tryPop to safely attempt to close the dialog
-        Navigator.of(context).pop();
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+      
+      // Show error message to user
+      if (context.mounted) {
+        String errorMessage = 'Fejl ved upload af billede';
         
-        // Show error message
-        debugPrint('Error uploading profile image: $e');
+        // Try to extract a more specific error message
+        if (e.toString().contains('decode')) {
+          errorMessage = 'Kunne ikke læse billedet. Prøv et andet format.';
+        } else if (e.toString().contains('size')) {
+          errorMessage = 'Billedet er for stort. Prøv et mindre billede.';
+        } else if (e.toString().contains('network')) {
+          errorMessage = 'Netværksfejl. Tjek din internetforbindelse.';
+        } else {
+          errorMessage = 'Fejl: ${e.toString().split(':').last.trim()}';
+        }
         
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Fejl ved upload: ${e.toString().split(':').last.trim()}'),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
           ),
         );
       }

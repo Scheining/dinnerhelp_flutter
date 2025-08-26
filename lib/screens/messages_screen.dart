@@ -103,7 +103,7 @@ class MessagesScreen extends ConsumerWidget {
           }
 
           return ListView.builder(
-            padding: const EdgeInsets.only(bottom: 100),
+            padding: const EdgeInsets.only(top: 0, bottom: 100),
             itemCount: conversations.length,
             itemBuilder: (context, index) {
               final conversation = conversations[index];

@@ -315,6 +315,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen>
                   }
                   
                   return ListView.builder(
+                    padding: EdgeInsets.zero,
                     itemCount: notifications.length,
                     itemBuilder: (context, index) {
                       final notification = notifications[index];
@@ -422,6 +423,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen>
                   }
                   
                   return ListView.builder(
+                    padding: EdgeInsets.zero,
                     itemCount: conversations.length,
                     itemBuilder: (context, index) {
                       final conversation = conversations[index];

@@ -226,28 +226,10 @@ class UnifiedConversationsNotifier extends AsyncNotifier<List<UnifiedConversatio
 
       final isChef = profileResponse['is_chef'] ?? false;
 
-      // Load inquiries with proper joins
+      // Load inquiries - explicitly select columns to avoid auto-joins
       final inquiriesQuery = supabase
           .from('inquiries')
-          .select('''
-            *,
-            chefs!inquiries_chef_id_fkey(
-              id,
-              profile_image_url,
-              profiles(
-                id,
-                first_name,
-                last_name,
-                "profile-image-url"
-              )
-            ),
-            profiles!inquiries_user_id_fkey(
-              id,
-              first_name,
-              last_name,
-              "profile-image-url"
-            )
-          ''');
+          .select('id, user_id, chef_id, last_message, last_message_at, created_at, updated_at');
       
       // Apply filter based on whether user is chef or not
       if (isChef) {
@@ -263,7 +245,7 @@ class UnifiedConversationsNotifier extends AsyncNotifier<List<UnifiedConversatio
       print('DEBUG: Inquiries response: $inquiriesResponse');
       print('DEBUG: Number of inquiries: ${(inquiriesResponse as List).length}');
 
-      // Load booking chats
+      // Load booking chats - simpler query
       final bookingChatsQuery = supabase
           .from('chat_messages')
           .select('''
@@ -273,23 +255,7 @@ class UnifiedConversationsNotifier extends AsyncNotifier<List<UnifiedConversatio
               date,
               status,
               chef_id,
-              user_id,
-              chefs!bookings_chef_id_fkey(
-                id,
-                profile_image_url,
-                profiles(
-                  id,
-                  first_name,
-                  last_name,
-                  "profile-image-url"
-                )
-              ),
-              profiles!bookings_user_id_fkey(
-                id,
-                first_name,
-                last_name,
-                "profile-image-url"
-              )
+              user_id
             )
           ''')
           .or('sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}')
@@ -311,30 +277,75 @@ class UnifiedConversationsNotifier extends AsyncNotifier<List<UnifiedConversatio
       // Convert to unified conversations
       final conversations = <UnifiedConversation>[];
 
+      // Fetch chef and user data separately for each inquiry
+      final inquiryIds = (inquiriesResponse as List).map((i) => i['id']).toList();
+      final chefIds = (inquiriesResponse as List).map((i) => i['chef_id']).where((id) => id != null).toList();
+      final userIds = (inquiriesResponse as List).map((i) => i['user_id']).where((id) => id != null).toList();
+      
+      // Fetch all chef data
+      Map<String, dynamic> chefDataMap = {};
+      if (chefIds.isNotEmpty) {
+        final chefsResponse = await supabase
+            .from('chefs')
+            .select('''
+              id,
+              profile_image_url,
+              profiles (
+                first_name,
+                last_name
+              )
+            ''')
+            .inFilter('id', chefIds);
+        
+        for (final chef in (chefsResponse as List)) {
+          chefDataMap[chef['id']] = chef;
+        }
+      }
+      
+      // Fetch all user profile data
+      Map<String, dynamic> userDataMap = {};
+      if (userIds.isNotEmpty) {
+        final usersResponse = await supabase
+            .from('profiles')
+            .select('id, first_name, last_name, "profile-image-url"')
+            .inFilter('id', userIds);
+        
+        for (final user in (usersResponse as List)) {
+          userDataMap[user['id']] = user;
+        }
+      }
+      
       // Add inquiries
       for (final inquiry in (inquiriesResponse as List)) {
-        // For chef info, we need to go through chefs -> profiles
-        final chefData = inquiry['chefs'] as Map<String, dynamic>?;
-        final chefProfile = chefData?['profiles'] as Map<String, dynamic>?;
+        print('DEBUG: Full inquiry data: $inquiry');
         
-        // For user info, it's directly under profiles
-        final userProfile = inquiry['profiles'] as Map<String, dynamic>?;
+        // Get chef and user data from the maps
+        final chefData = chefDataMap[inquiry['chef_id']];
+        final chefProfile = chefData?['profiles'] as Map<String, dynamic>?;
+        final userData = userDataMap[inquiry['user_id']];
+        
+        print('DEBUG: Chef data: $chefData');
+        print('DEBUG: Chef profile: $chefProfile');
+        print('DEBUG: User data: $userData');
         
         String otherPersonName;
         String? otherPersonImage;
         
         if (isChef) {
           // If current user is chef, show user info
-          otherPersonName = '${userProfile?['first_name'] ?? ''} ${userProfile?['last_name'] ?? ''}'.trim();
+          otherPersonName = '${userData?['first_name'] ?? ''} ${userData?['last_name'] ?? ''}'.trim();
           if (otherPersonName.isEmpty) otherPersonName = 'Bruger';
-          otherPersonImage = userProfile?['profile-image-url'];
+          otherPersonImage = userData?['profile-image-url'];
         } else {
           // If current user is regular user, show chef info
           otherPersonName = '${chefProfile?['first_name'] ?? ''} ${chefProfile?['last_name'] ?? ''}'.trim();
           if (otherPersonName.isEmpty) otherPersonName = 'Kok';
-          // Use chef's profile_image_url from chefs table, or fallback to profiles table
-          otherPersonImage = chefData?['profile_image_url'] ?? chefProfile?['profile-image-url'];
+          // Use chef's profile_image_url from chefs table
+          otherPersonImage = chefData?['profile_image_url'];
         }
+        
+        print('DEBUG: Final otherPersonName: $otherPersonName');
+        print('DEBUG: Final otherPersonImage: $otherPersonImage');
         
         conversations.add(UnifiedConversation(
           id: inquiry['id'],
@@ -353,27 +364,70 @@ class UnifiedConversationsNotifier extends AsyncNotifier<List<UnifiedConversatio
         ));
       }
 
+      // Fetch chef and user data for bookings
+      final bookingChefIds = bookingMessagesMap.values
+          .map((m) => (m['bookings'] as Map<String, dynamic>)['chef_id'])
+          .where((id) => id != null)
+          .toSet()
+          .toList();
+      final bookingUserIds = bookingMessagesMap.values
+          .map((m) => (m['bookings'] as Map<String, dynamic>)['user_id'])
+          .where((id) => id != null)
+          .toSet()
+          .toList();
+      
+      // Fetch booking chef data (merge with existing if needed)
+      if (bookingChefIds.isNotEmpty) {
+        final chefsResponse = await supabase
+            .from('chefs')
+            .select('''
+              id,
+              profile_image_url,
+              profiles (
+                first_name,
+                last_name
+              )
+            ''')
+            .inFilter('id', bookingChefIds);
+        
+        for (final chef in (chefsResponse as List)) {
+          chefDataMap[chef['id']] = chef;
+        }
+      }
+      
+      // Fetch booking user data (merge with existing if needed)
+      if (bookingUserIds.isNotEmpty) {
+        final usersResponse = await supabase
+            .from('profiles')
+            .select('id, first_name, last_name, "profile-image-url"')
+            .inFilter('id', bookingUserIds);
+        
+        for (final user in (usersResponse as List)) {
+          userDataMap[user['id']] = user;
+        }
+      }
+      
       // Add booking chats
       for (final message in bookingMessagesMap.values) {
         final booking = message['bookings'] as Map<String, dynamic>;
-        final chefData = booking['chefs'] as Map<String, dynamic>?;
+        final chefData = chefDataMap[booking['chef_id']];
         final chefProfile = chefData?['profiles'] as Map<String, dynamic>?;
-        final userProfile = booking['profiles'] as Map<String, dynamic>?;
+        final userData = userDataMap[booking['user_id']];
         
         String otherPersonName;
         String? otherPersonImage;
         
         if (isChef) {
           // If current user is chef, show user info
-          otherPersonName = '${userProfile?['first_name'] ?? ''} ${userProfile?['last_name'] ?? ''}'.trim();
+          otherPersonName = '${userData?['first_name'] ?? ''} ${userData?['last_name'] ?? ''}'.trim();
           if (otherPersonName.isEmpty) otherPersonName = 'Bruger';
-          otherPersonImage = userProfile?['profile-image-url'];
+          otherPersonImage = userData?['profile-image-url'];
         } else {
           // If current user is regular user, show chef info
           otherPersonName = '${chefProfile?['first_name'] ?? ''} ${chefProfile?['last_name'] ?? ''}'.trim();
           if (otherPersonName.isEmpty) otherPersonName = 'Kok';
-          // Use chef's profile_image_url from chefs table, or fallback to profiles table
-          otherPersonImage = chefData?['profile_image_url'] ?? chefProfile?['profile-image-url'];
+          // Use chef's profile_image_url from chefs table
+          otherPersonImage = chefData?['profile_image_url'];
         }
         
         conversations.add(UnifiedConversation(
