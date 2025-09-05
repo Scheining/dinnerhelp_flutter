@@ -65,8 +65,8 @@ class AppLocalizationsDa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count gæster',
-      one: '1 gæst',
+      other: '$count personer',
+      one: '1 person',
     );
     return '$_temp0';
   }
@@ -304,6 +304,6 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String guestCount(int count) {
-    return '$count gæster';
+    return '$count personer';
   }
 }

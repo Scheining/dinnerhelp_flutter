@@ -16,16 +16,40 @@ Deno.serve(async (req: Request) => {
 
   try {
     const { 
-      booking_id, 
+      booking_id, // Optional - for backward compatibility
       amount, 
       service_fee_amount, 
+      payment_processing_fee,
       vat_amount, 
-      chef_stripe_account_id 
+      chef_stripe_account_id,
+      // New fields for reservation system
+      booking_data // Contains all booking details for creating reservation
     } = await req.json()
 
-    if (!booking_id || !amount || !chef_stripe_account_id) {
+    // Log received parameters for debugging
+    console.log('Received parameters:', {
+      has_booking_id: !!booking_id,
+      has_amount: !!amount,
+      amount_value: amount,
+      has_chef_stripe_account_id: !!chef_stripe_account_id,
+      chef_stripe_account_id_value: chef_stripe_account_id,
+      has_booking_data: !!booking_data
+    })
+
+    // Support both old (with booking_id) and new (with booking_data) approaches
+    if (!amount || !chef_stripe_account_id) {
+      console.error('Missing required parameters:', {
+        amount: amount || 'missing',
+        chef_stripe_account_id: chef_stripe_account_id || 'missing'
+      })
       return new Response(
-        JSON.stringify({ error: 'Missing required parameters' }),
+        JSON.stringify({ 
+          error: 'Missing required parameters',
+          details: {
+            amount_provided: !!amount,
+            chef_stripe_account_id_provided: !!chef_stripe_account_id
+          }
+        }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -35,17 +59,55 @@ Deno.serve(async (req: Request) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseKey)
 
-    // Get booking details
-    const { data: booking, error: bookingError } = await supabase
-      .from('bookings')
-      .select('*, chefs(*, profiles(*))')
-      .eq('id', booking_id)
-      .single()
+    // Handle both old and new approaches
+    let booking = null
+    let useReservationSystem = false
+    
+    if (booking_id) {
+      // Old approach: booking already exists
+      const { data: bookingData, error: bookingError } = await supabase
+        .from('bookings')
+        .select('*, chefs(*, profiles(*))')
+        .eq('id', booking_id)
+        .single()
 
-    if (bookingError || !booking) {
+      if (bookingError || !bookingData) {
+        return new Response(
+          JSON.stringify({ error: 'Booking not found' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      booking = bookingData
+    } else if (booking_data) {
+      // New approach: create reservation without booking
+      useReservationSystem = true
+      
+      // Get chef details for the description
+      const { data: chefData, error: chefError } = await supabase
+        .from('chefs')
+        .select('*, profiles(*)')
+        .eq('id', booking_data.chef_id)
+        .single()
+      
+      if (chefError || !chefData) {
+        return new Response(
+          JSON.stringify({ error: 'Chef not found' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      
+      // Create a booking-like object for compatibility
+      booking = {
+        chef_id: booking_data.chef_id,
+        user_id: booking_data.user_id,
+        chefs: {
+          profiles: chefData.profiles
+        }
+      }
+    } else {
       return new Response(
-        JSON.stringify({ error: 'Booking not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Either booking_id or booking_data is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
@@ -66,39 +128,67 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    // Check if payment intent already exists for this booking
-    const { data: existingPaymentIntent } = await supabase
-      .from('payment_intents')
-      .select()
-      .eq('booking_id', booking_id)
-      .maybeSingle()
+    // Check if payment intent already exists
+    if (booking_id) {
+      // Old approach: check by booking_id
+      const { data: existingPaymentIntent } = await supabase
+        .from('payment_intents')
+        .select()
+        .eq('booking_id', booking_id)
+        .maybeSingle()
 
-    if (existingPaymentIntent) {
-      return new Response(
-        JSON.stringify(existingPaymentIntent),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      if (existingPaymentIntent) {
+        return new Response(
+          JSON.stringify(existingPaymentIntent),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
     }
 
-    // Calculate fees
-    // User pays: chef_rate + VAT (25%)
-    // Chef receives: chef_rate - platform_fee (15%)
-    // Platform receives: 15% of chef_rate (before VAT)
+    // Fetch chef with VAT info
+    const { data: chefInfo, error: chefInfoError } = await supabase
+      .from('chefs')
+      .select('is_vat_registered, vat_rate, commission_rate')
+      .eq('id', booking_data?.chef_id || booking?.chef_id)
+      .single()
     
-    // amount is what user pays (including VAT)
-    const baseAmount = Math.round(amount / 1.25) // Remove 25% VAT to get base chef rate
-    const platformFee = Math.round(baseAmount * 0.15) // 15% platform fee from base amount
-    const chefPayout = baseAmount - platformFee // What chef actually receives
+    if (chefInfoError) {
+      console.error('Failed to fetch chef VAT info:', chefInfoError)
+    }
     
-    // For Stripe: application_fee is what platform keeps
-    const applicationFeeAmount = service_fee_amount || platformFee
+    // Calculate fees based on new structure
+    // User pays: base_amount + service_fee (5%) + payment_processing + VAT (if registered)
+    // Chef pays: commission (15%) from their base amount
+    // Platform receives: commission (15%) from chef + service_fee (5%) from user
+    
+    const isVatRegistered = chefInfo?.is_vat_registered || false
+    const vatRate = isVatRegistered ? (chefInfo?.vat_rate || 0.25) : 0
+    const commissionRate = chefInfo?.commission_rate || 0.15
+    
+    // Calculate base amount (without VAT and fees)
+    const baseAmount = Math.round(amount / (1 + vatRate + 0.05)) // Approximate base
+    
+    // Chef-side commission (15% from chef's earnings)
+    const chefCommission = Math.round(baseAmount * commissionRate)
+    
+    // User-side service fee (5% shown to user)
+    const userServiceFee = service_fee_amount || Math.round(baseAmount * 0.05)
+    
+    // Total platform revenue (commission + service fee)
+    const applicationFeeAmount = chefCommission + userServiceFee
+    
+    // What chef actually receives (base minus their commission)
+    const chefPayout = baseAmount - chefCommission
 
     // Create Stripe payment intent with Connect
     const paymentIntent = await stripe.paymentIntents.create(
       {
         amount, // Total amount user pays (includes VAT)
         currency: 'dkk',
-        capture_method: 'manual', // Reserve funds, capture later
+        // Payment captured immediately (no manual capture)
+        automatic_payment_methods: {
+          enabled: true,
+        },
         application_fee_amount: applicationFeeAmount, // Platform's fee
         transfer_data: {
           destination: chef_stripe_account_id,
@@ -108,6 +198,15 @@ Deno.serve(async (req: Request) => {
           chef_id: booking.chef_id,
           user_id: booking.user_id,
           service_type: 'dining_experience',
+          base_amount: baseAmount,
+          chef_commission: chefCommission,
+          user_service_fee: userServiceFee,
+          payment_processing_fee: payment_processing_fee || 0,
+          vat_amount: vat_amount || 0,
+          vat_rate: vatRate,
+          is_vat_registered: isVatRegistered,
+          chef_payout: chefPayout,
+          platform_revenue: applicationFeeAmount,
         },
         description: `DinnerHelp booking - ${booking.chefs.profiles.first_name} ${booking.chefs.profiles.last_name}`,
         statement_descriptor_suffix: 'DINNERHELP',
@@ -115,22 +214,36 @@ Deno.serve(async (req: Request) => {
     )
 
     // Store payment intent in database
+    const paymentIntentData: any = {
+      // Don't specify id - let it auto-generate as UUID
+      chef_stripe_account_id,
+      stripe_payment_intent_id: paymentIntent.id,
+      amount,
+      service_fee_amount: userServiceFee,
+      chef_commission_amount: chefCommission,
+      payment_processing_fee: payment_processing_fee || 0,
+      vat_amount: vat_amount || 0,
+      currency: paymentIntent.currency.toUpperCase(),
+      status: paymentIntent.status,
+      capture_method: paymentIntent.capture_method,
+      client_secret: paymentIntent.client_secret,
+      created_at: new Date().toISOString(),
+    }
+    
+    // Add fields based on approach
+    if (useReservationSystem) {
+      // New approach: store booking data and set reservation
+      paymentIntentData.booking_data = booking_data
+      paymentIntentData.reservation_expires_at = new Date(Date.now() + 15 * 60 * 1000).toISOString() // 15 minutes
+      paymentIntentData.reservation_status = 'active'
+    } else {
+      // Old approach: link to existing booking
+      paymentIntentData.booking_id = booking_id
+    }
+    
     const { data: storedPaymentIntent, error: storeError } = await supabase
       .from('payment_intents')
-      .insert({
-        id: paymentIntent.id,
-        booking_id,
-        chef_stripe_account_id,
-        stripe_payment_intent_id: paymentIntent.id,
-        amount,
-        service_fee_amount: applicationFeeAmount,
-        vat_amount: vat_amount || 0,
-        currency: paymentIntent.currency.toUpperCase(),
-        status: paymentIntent.status,
-        capture_method: paymentIntent.capture_method,
-        client_secret: paymentIntent.client_secret,
-        created_at: new Date().toISOString(),
-      })
+      .insert(paymentIntentData)
       .select()
       .single()
 
@@ -145,15 +258,17 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    // Update booking with payment intent
-    await supabase
-      .from('bookings')
-      .update({
-        payment_status: 'pending',
-        stripe_payment_intent_id: paymentIntent.id,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', booking_id)
+    // Update booking with payment intent (only for old approach)
+    if (booking_id) {
+      await supabase
+        .from('bookings')
+        .update({
+          payment_status: 'pending',
+          stripe_payment_intent_id: paymentIntent.id,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', booking_id)
+    }
 
     return new Response(
       JSON.stringify(storedPaymentIntent),

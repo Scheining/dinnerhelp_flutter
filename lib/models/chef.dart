@@ -15,6 +15,11 @@ class Chef {
   final bool isVerified;
   final bool isAvailable;
   final double distanceKm;
+  final bool isVatRegistered;
+  final String? vatNumber;
+  final double vatRate;
+  final String businessType;
+  final double commissionRate;
 
   const Chef({
     required this.id,
@@ -33,6 +38,11 @@ class Chef {
     required this.isVerified,
     required this.isAvailable,
     required this.distanceKm,
+    this.isVatRegistered = false,
+    this.vatNumber,
+    this.vatRate = 0.25,
+    this.businessType = 'individual',
+    this.commissionRate = 0.15,
   });
 
   static List<Chef> getSampleChefs() {

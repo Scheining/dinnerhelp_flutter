@@ -188,6 +188,7 @@ class BookingMessagesNotifier extends FamilyAsyncNotifier<List<Map<String, dynam
 class UnifiedConversationsNotifier extends AsyncNotifier<List<UnifiedConversation>> {
   StreamSubscription? _inquiriesSubscription;
   StreamSubscription? _bookingChatsSubscription;
+  StreamSubscription? _visibilitySubscription;
 
   @override
   Future<List<UnifiedConversation>> build() async {
@@ -196,6 +197,7 @@ class UnifiedConversationsNotifier extends AsyncNotifier<List<UnifiedConversatio
     ref.onDispose(() {
       _inquiriesSubscription?.cancel();
       _bookingChatsSubscription?.cancel();
+      _visibilitySubscription?.cancel();
     });
 
     final conversations = await _loadAllConversations();
@@ -227,9 +229,10 @@ class UnifiedConversationsNotifier extends AsyncNotifier<List<UnifiedConversatio
       final isChef = profileResponse['is_chef'] ?? false;
 
       // Load inquiries - explicitly select columns to avoid auto-joins
+      // Also include archive status for display purposes
       final inquiriesQuery = supabase
           .from('inquiries')
-          .select('id, user_id, chef_id, last_message, last_message_at, created_at, updated_at');
+          .select('id, user_id, chef_id, last_message, last_message_at, created_at, updated_at, is_archived, is_deleted');
       
       // Apply filter based on whether user is chef or not
       if (isChef) {
@@ -238,8 +241,23 @@ class UnifiedConversationsNotifier extends AsyncNotifier<List<UnifiedConversatio
         inquiriesQuery.eq('user_id', currentUser.id);
       }
       
+      // Filter out deleted AND archived conversations
       final inquiriesResponse = await inquiriesQuery
+          .eq('is_deleted', false)
+          .eq('is_archived', false)
           .order('last_message_at', ascending: false);
+      
+      // Get hidden conversations for this user
+      final hiddenConversationsResponse = await supabase
+          .from('conversation_visibility')
+          .select('conversation_id, conversation_type, last_hidden_message_at')
+          .eq('user_id', currentUser.id);
+      
+      final hiddenConversations = <String, DateTime>{};
+      for (final hidden in (hiddenConversationsResponse as List)) {
+        final key = '${hidden['conversation_type']}_${hidden['conversation_id']}';
+        hiddenConversations[key] = DateTime.parse(hidden['last_hidden_message_at']);
+      }
       
       print('DEBUG: Inquiries query executed');
       print('DEBUG: Inquiries response: $inquiriesResponse');
@@ -266,6 +284,11 @@ class UnifiedConversationsNotifier extends AsyncNotifier<List<UnifiedConversatio
       // Group booking messages by booking_id to get latest message per booking
       final bookingMessagesMap = <String, Map<String, dynamic>>{};
       for (final message in (bookingChatsResponse as List)) {
+        // Skip archived or deleted messages
+        if (message['is_archived'] == true || message['is_deleted'] == true) {
+          continue;
+        }
+        
         final bookingId = message['booking_id'];
         if (!bookingMessagesMap.containsKey(bookingId) || 
             DateTime.parse(message['created_at']).isAfter(
@@ -317,6 +340,13 @@ class UnifiedConversationsNotifier extends AsyncNotifier<List<UnifiedConversatio
       
       // Add inquiries
       for (final inquiry in (inquiriesResponse as List)) {
+        // Skip if this inquiry is hidden by the user
+        final hideKey = 'inquiry_${inquiry['id']}';
+        if (hiddenConversations.containsKey(hideKey)) {
+          print('DEBUG: Skipping hidden inquiry: ${inquiry['id']}');
+          continue;
+        }
+        
         print('DEBUG: Full inquiry data: $inquiry');
         
         // Get chef and user data from the maps
@@ -361,6 +391,7 @@ class UnifiedConversationsNotifier extends AsyncNotifier<List<UnifiedConversatio
                   ? DateTime.parse(inquiry['last_message_at'])
                   : inquiry['last_message_at'] as DateTime)
               : null,
+          isArchived: inquiry['is_archived'] ?? false,
         ));
       }
 
@@ -409,6 +440,13 @@ class UnifiedConversationsNotifier extends AsyncNotifier<List<UnifiedConversatio
       
       // Add booking chats
       for (final message in bookingMessagesMap.values) {
+        // Skip if this booking chat is hidden by the user
+        final hideKey = 'booking_${message['booking_id']}';
+        if (hiddenConversations.containsKey(hideKey)) {
+          print('DEBUG: Skipping hidden booking: ${message['booking_id']}');
+          continue;
+        }
+        
         final booking = message['bookings'] as Map<String, dynamic>;
         final chefData = chefDataMap[booking['chef_id']];
         final chefProfile = chefData?['profiles'] as Map<String, dynamic>?;
@@ -513,6 +551,16 @@ class UnifiedConversationsNotifier extends AsyncNotifier<List<UnifiedConversatio
             _refreshConversations();
           }
         });
+    
+    // Subscribe to conversation visibility changes (for auto-unhide)
+    _visibilitySubscription = supabase
+        .from('conversation_visibility')
+        .stream(primaryKey: ['id'])
+        .eq('user_id', currentUser.id)
+        .listen((data) {
+          // Refresh when visibility changes (e.g., auto-unhide on new message)
+          _refreshConversations();
+        });
   }
 
   Future<String?> getOrCreateInquiry(String chefId) async {
@@ -548,6 +596,306 @@ class UnifiedConversationsNotifier extends AsyncNotifier<List<UnifiedConversatio
     } catch (e) {
       return null;
     }
+  }
+
+  // Archive a conversation (inquiry or booking chat)
+  Future<bool> archiveConversation(String conversationId, ConversationType type) async {
+    try {
+      final supabase = Supabase.instance.client;
+      final currentUser = supabase.auth.currentUser;
+      
+      if (currentUser == null) return false;
+
+      if (type == ConversationType.inquiry) {
+        // Archive inquiry using database function
+        final result = await supabase.rpc(
+          'archive_inquiry_conversation',
+          params: {
+            'p_inquiry_id': conversationId,
+            'p_user_id': currentUser.id,
+          },
+        );
+        
+        // Refresh conversations after archiving
+        await _refreshConversations();
+        return true;
+      } else {
+        // Archive booking chat using database function
+        final result = await supabase.rpc(
+          'archive_booking_chat',
+          params: {
+            'p_booking_id': conversationId,
+            'p_user_id': currentUser.id,
+          },
+        );
+        
+        // Refresh conversations after archiving
+        await _refreshConversations();
+        return true;
+      }
+    } catch (e, stackTrace) {
+      print('ERROR archiving conversation: $e');
+      print('Stack trace: $stackTrace');
+      print('ConversationId: $conversationId');
+      print('Type: $type');
+      print('CurrentUser: ${Supabase.instance.client.auth.currentUser?.id}');
+      return false;
+    }
+  }
+
+  // Unarchive a conversation
+  Future<bool> unarchiveConversation(String conversationId, ConversationType type) async {
+    try {
+      final supabase = Supabase.instance.client;
+      final currentUser = supabase.auth.currentUser;
+      
+      if (currentUser == null) return false;
+
+      if (type == ConversationType.inquiry) {
+        // Unarchive inquiry using database function
+        final result = await supabase.rpc(
+          'unarchive_inquiry_conversation',
+          params: {
+            'p_inquiry_id': conversationId,
+            'p_user_id': currentUser.id,
+          },
+        );
+        
+        // Refresh conversations after unarchiving
+        await _refreshConversations();
+        return true;
+      } else {
+        // For booking chats, update the archived status
+        await supabase
+            .from('chat_messages')
+            .update({
+              'is_archived': false,
+              'archived_at': null,
+            })
+            .eq('booking_id', conversationId)
+            .or('sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}');
+        
+        // Refresh conversations
+        await _refreshConversations();
+        return true;
+      }
+    } catch (e, stackTrace) {
+      print('ERROR unarchiving conversation: $e');
+      print('Stack trace: $stackTrace');
+      print('ConversationId: $conversationId');
+      print('Type: $type');
+      return false;
+    }
+  }
+
+  // Hide conversation for current user (Facebook/Airbnb style delete)
+  Future<bool> deleteConversation(String conversationId, ConversationType type) async {
+    try {
+      final supabase = Supabase.instance.client;
+      final currentUser = supabase.auth.currentUser;
+      
+      if (currentUser == null) return false;
+
+      // Use the new hide function that only hides for current user
+      // This allows the conversation to reappear if new messages arrive
+      final result = await supabase.rpc(
+        'hide_conversation_for_user',
+        params: {
+          'p_conversation_id': conversationId,
+          'p_conversation_type': type == ConversationType.inquiry ? 'inquiry' : 'booking',
+          'p_user_id': currentUser.id,
+        },
+      );
+      
+      // Refresh conversations after hiding
+      await _refreshConversations();
+      return true;
+    } catch (e, stackTrace) {
+      print('ERROR hiding conversation: $e');
+      print('Stack trace: $stackTrace');
+      print('ConversationId: $conversationId');
+      print('Type: $type');
+      print('CurrentUser: ${Supabase.instance.client.auth.currentUser?.id}');
+      return false;
+    }
+  }
+
+  // Get all hidden/deleted conversations for the current user
+  Future<List<UnifiedConversation>> getHiddenConversations() async {
+    try {
+      final supabase = Supabase.instance.client;
+      final currentUser = supabase.auth.currentUser;
+      
+      if (currentUser == null) return [];
+
+      // Get all hidden conversations for this user
+      final hiddenResponse = await supabase
+          .from('conversation_visibility')
+          .select('conversation_id, conversation_type')
+          .eq('user_id', currentUser.id);
+
+      if ((hiddenResponse as List).isEmpty) return [];
+
+      final conversations = <UnifiedConversation>[];
+      
+      // Get inquiry conversations
+      final inquiryIds = (hiddenResponse as List)
+          .where((h) => h['conversation_type'] == 'inquiry')
+          .map((h) => h['conversation_id'])
+          .toList();
+      
+      if (inquiryIds.isNotEmpty) {
+        final inquiriesResponse = await supabase
+            .from('inquiries')
+            .select('*, profiles!user_id(*), chefs!chef_id(*, profiles(*))')
+            .inFilter('id', inquiryIds);
+        
+        for (final inquiry in (inquiriesResponse as List)) {
+          // Extract user and chef data similar to main load function
+          final userData = inquiry['profiles'] as Map<String, dynamic>?;
+          final chefData = inquiry['chefs'] as Map<String, dynamic>?;
+          final chefProfile = chefData?['profiles'] as Map<String, dynamic>?;
+          
+          final isChef = await isUserChef();
+          String otherPersonName;
+          String? otherPersonImage;
+          
+          if (isChef) {
+            otherPersonName = '${userData?['first_name'] ?? ''} ${userData?['last_name'] ?? ''}'.trim();
+            if (otherPersonName.isEmpty) otherPersonName = 'Bruger';
+            otherPersonImage = userData?['profile-image-url'];
+          } else {
+            otherPersonName = '${chefProfile?['first_name'] ?? ''} ${chefProfile?['last_name'] ?? ''}'.trim();
+            if (otherPersonName.isEmpty) otherPersonName = 'Kok';
+            otherPersonImage = chefData?['profile_image_url'];
+          }
+          
+          conversations.add(UnifiedConversation(
+            id: inquiry['id'],
+            type: ConversationType.inquiry,
+            inquiryId: inquiry['id'],
+            chefId: inquiry['chef_id'],
+            userId: inquiry['user_id'],
+            otherPersonName: otherPersonName,
+            otherPersonImage: otherPersonImage,
+            lastMessage: inquiry['last_message'],
+            lastMessageAt: inquiry['last_message_at'] != null 
+                ? DateTime.parse(inquiry['last_message_at'])
+                : null,
+          ));
+        }
+      }
+      
+      // Get booking conversations
+      final bookingIds = (hiddenResponse as List)
+          .where((h) => h['conversation_type'] == 'booking')
+          .map((h) => h['conversation_id'])
+          .toList();
+      
+      if (bookingIds.isNotEmpty) {
+        final bookingsResponse = await supabase
+            .from('bookings')
+            .select('*, profiles!user_id(*), chefs!chef_id(*, profiles(*))')
+            .inFilter('id', bookingIds);
+        
+        for (final booking in (bookingsResponse as List)) {
+          // Get last message for this booking
+          final lastMessageResponse = await supabase
+              .from('chat_messages')
+              .select('content, created_at')
+              .eq('booking_id', booking['id'])
+              .order('created_at', ascending: false)
+              .limit(1)
+              .maybeSingle();
+          
+          final userData = booking['profiles'] as Map<String, dynamic>?;
+          final chefData = booking['chefs'] as Map<String, dynamic>?;
+          final chefProfile = chefData?['profiles'] as Map<String, dynamic>?;
+          
+          final isChef = await isUserChef();
+          String otherPersonName;
+          String? otherPersonImage;
+          
+          if (isChef) {
+            otherPersonName = '${userData?['first_name'] ?? ''} ${userData?['last_name'] ?? ''}'.trim();
+            if (otherPersonName.isEmpty) otherPersonName = 'Bruger';
+            otherPersonImage = userData?['profile-image-url'];
+          } else {
+            otherPersonName = '${chefProfile?['first_name'] ?? ''} ${chefProfile?['last_name'] ?? ''}'.trim();
+            if (otherPersonName.isEmpty) otherPersonName = 'Kok';
+            otherPersonImage = chefData?['profile_image_url'];
+          }
+          
+          conversations.add(UnifiedConversation(
+            id: booking['id'],
+            type: ConversationType.booking,
+            bookingId: booking['id'],
+            chefId: booking['chef_id'],
+            userId: booking['user_id'],
+            otherPersonName: otherPersonName,
+            otherPersonImage: otherPersonImage,
+            lastMessage: lastMessageResponse?['content'],
+            lastMessageAt: lastMessageResponse?['created_at'] != null 
+                ? DateTime.parse(lastMessageResponse!['created_at'])
+                : null,
+            bookingStatus: booking['status'],
+            bookingDate: DateTime.parse(booking['date']),
+          ));
+        }
+      }
+      
+      // Sort by last message time
+      conversations.sort((a, b) {
+        final aTime = a.lastMessageAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final bTime = b.lastMessageAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        return bTime.compareTo(aTime);
+      });
+      
+      return conversations;
+    } catch (e) {
+      print('ERROR loading hidden conversations: $e');
+      return [];
+    }
+  }
+
+  // Unhide/restore a conversation
+  Future<bool> unhideConversation(String conversationId, ConversationType type) async {
+    try {
+      final supabase = Supabase.instance.client;
+      final currentUser = supabase.auth.currentUser;
+      
+      if (currentUser == null) return false;
+
+      // Delete the visibility record to unhide the conversation
+      await supabase
+          .from('conversation_visibility')
+          .delete()
+          .eq('user_id', currentUser.id)
+          .eq('conversation_id', conversationId)
+          .eq('conversation_type', type == ConversationType.inquiry ? 'inquiry' : 'booking');
+      
+      // Refresh conversations
+      await _refreshConversations();
+      return true;
+    } catch (e) {
+      print('ERROR unhiding conversation: $e');
+      return false;
+    }
+  }
+
+  // Check if current user is a chef
+  Future<bool> isUserChef() async {
+    final supabase = Supabase.instance.client;
+    final currentUser = supabase.auth.currentUser;
+    if (currentUser == null) return false;
+    
+    final profileResponse = await supabase
+        .from('profiles')
+        .select('is_chef')
+        .eq('id', currentUser.id)
+        .maybeSingle();
+    
+    return profileResponse?['is_chef'] == true;
   }
 }
 

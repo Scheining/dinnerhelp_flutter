@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:homechef/models/chef.dart';
 import 'package:homechef/models/booking.dart';
 import 'package:homechef/widgets/custom_button.dart';
@@ -83,10 +84,19 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     final theme = Theme.of(context);
     
     // Calculate amounts in øre (Danish cents)
-    final baseAmount = (widget.chef.hourlyRate * widget.hours * 100).toInt();
-    final serviceFeeAmount = (baseAmount * 0.1).toInt();
-    final vatAmount = ((baseAmount + serviceFeeAmount) * 0.25).toInt();
-    final totalAmountInOre = baseAmount + serviceFeeAmount + vatAmount;
+    final chefRate = widget.chef.hourlyRate * widget.hours;
+    final baseAmount = (chefRate * 100).toInt(); // Chef's service cost in øre
+    
+    // User-side fees (shown on receipt)
+    final userServiceFee = (baseAmount * 0.05).toInt(); // 5% service fee to DinnerHelp
+    final paymentProcessingFee = ((baseAmount + userServiceFee) * 0.029 + 250).toInt(); // ~2.9% + 2.50 DKK
+    
+    // VAT only if chef is registered (25% on service only, not on fees)
+    final vatRate = widget.chef.isVatRegistered ? 0.25 : 0.0;
+    final vatAmount = (baseAmount * vatRate).toInt();
+    
+    // Total user pays
+    final totalAmountInOre = baseAmount + userServiceFee + paymentProcessingFee + vatAmount;
 
     return Scaffold(
       appBar: AppBar(
@@ -191,7 +201,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                               ),
                             ),
                             Text(
-                              '${widget.guestCount} gæster • ${widget.hours} timer',
+                              '${widget.guestCount} personer • ${widget.hours} timer',
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: Colors.grey.shade600,
                               ),
@@ -205,8 +215,10 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                   const Divider(),
                   const SizedBox(height: 8),
                   _buildPriceRow('Service (${widget.hours} timer)', '${(baseAmount / 100).toStringAsFixed(0)} kr'),
-                  _buildPriceRow('Servicegebyr', '${(serviceFeeAmount / 100).toStringAsFixed(0)} kr'),
-                  _buildPriceRow('Moms (25%)', '${(vatAmount / 100).toStringAsFixed(0)} kr'),
+                  _buildPriceRow('Servicegebyr (5%)', '${(userServiceFee / 100).toStringAsFixed(0)} kr'),
+                  _buildPriceRow('Betalingsgebyr', '${(paymentProcessingFee / 100).toStringAsFixed(2)} kr'),
+                  if (vatAmount > 0) // Only show VAT if chef is registered
+                    _buildPriceRow('Moms (25%)', '${(vatAmount / 100).toStringAsFixed(0)} kr'),
                   const Divider(),
                   _buildPriceRow(
                     'Total',
@@ -381,7 +393,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                 : () => _processPaymentWithStripe(
                     totalAmountInOre,
                     baseAmount,
-                    serviceFeeAmount,
+                    userServiceFee,
+                    paymentProcessingFee,
                     vatAmount,
                   ),
             icon: _isProcessing ? null : Icons.lock,
@@ -440,12 +453,11 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   Future<void> _processPaymentWithStripe(
     int totalAmountInOre,
     int baseAmount,
-    int serviceFeeAmount,
+    int userServiceFee,
+    int paymentProcessingFee,
     int vatAmount,
   ) async {
     setState(() => _isProcessing = true);
-
-    String? bookingId;
     
     try {
       // Create booking date time
@@ -457,7 +469,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
         widget.bookingTime.minute,
       );
 
-      // Check chef availability FIRST
+      // Check chef availability FIRST (includes checking active reservations)
       final availabilityCheck = await _availabilityService.checkAvailability(
         chefId: widget.chef.id,
         bookingDate: widget.bookingDate,
@@ -468,9 +480,6 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       if (!availabilityCheck.isAvailable) {
         throw Exception(availabilityCheck.message ?? 'Kokken er ikke tilgængelig på det valgte tidspunkt');
       }
-
-      // Generate a booking ID
-      bookingId = const Uuid().v4();
       
       // Get current user
       final user = _supabaseClient.auth.currentUser;
@@ -497,29 +506,27 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
         minute: widget.bookingTime.minute,
       );
 
-      // First create the booking in database with pending payment status
-      final bookingResponse = await _supabaseClient.from('bookings').insert({
-        'id': bookingId,
+      // NEW: Use reservation system - don't create booking yet!
+      // Prepare booking data for the payment intent
+      final bookingData = {
         'user_id': user.id,
         'chef_id': widget.chef.id,
         'date': bookingDateTime.toIso8601String().split('T')[0],
         'start_time': '${widget.bookingTime.hour.toString().padLeft(2, '0')}:${widget.bookingTime.minute.toString().padLeft(2, '0')}:00',
         'end_time': '${endTime.hour.toString().padLeft(2, '0')}:${endTime.minute.toString().padLeft(2, '0')}:00',
-        'status': 'pending',
         'number_of_guests': widget.guestCount,
         'total_amount': totalAmountInOre,
-        'payment_status': 'pending',
         'address': widget.address,
         'notes': widget.specialRequests,
-        'is_recurring': false,
-        'platform_fee': serviceFeeAmount,
-      }).select().single();
+        'platform_fee': userServiceFee,
+      };
 
-      // Create payment intent via Edge Function
+      // Create payment intent with reservation (no booking yet!)
       final clientSecret = await _stripeService.createPaymentIntent(
-        bookingId: bookingId,
+        bookingData: bookingData, // NEW: Pass booking data instead of bookingId
         amount: totalAmountInOre,
-        serviceFeeAmount: serviceFeeAmount,
+        serviceFeeAmount: userServiceFee,
+        paymentProcessingFee: paymentProcessingFee,
         vatAmount: vatAmount,
         chefId: widget.chef.id,
       );
@@ -535,105 +542,35 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       final paymentSuccess = await _stripeService.presentPaymentSheet();
 
       if (!paymentSuccess) {
-        // If payment was cancelled, delete the booking
-        if (bookingId != null) {
-          await _supabaseClient.from('bookings').delete().eq('id', bookingId);
-        }
+        // Payment was cancelled - reservation will expire automatically
         setState(() => _isProcessing = false);
         return;
       }
 
-      // Payment successful, update the booking payment status
-      await _supabaseClient.from('bookings').update({
-        'payment_status': 'succeeded',
-        'updated_at': DateTime.now().toIso8601String(),
-      }).eq('id', bookingId);
-
-      // Send booking confirmation emails
-      try {
-        // Get user profile for name
-        final userProfile = await _supabaseClient
-            .from('profiles')
-            .select('first_name, last_name')
-            .eq('id', user.id)
-            .single();
-        
-        final userName = '${userProfile['first_name'] ?? ''} ${userProfile['last_name'] ?? ''}'.trim();
-        
-        // Send confirmation email to user
-        await _supabaseClient.functions.invoke(
-          'send-booking-confirmation',
-          body: {
-            'bookingId': bookingId,
-            'userEmail': user.email,
-            'userName': userName.isEmpty ? 'Kunde' : userName,
-            'chefName': widget.chef.name,
-            'bookingDate': widget.bookingDate.toIso8601String(),
-            'bookingTime': widget.bookingTime.format(context),
-            'guestCount': widget.guestCount,
-            'address': widget.address,
-            'totalAmount': totalAmountInOre / 100,
-            'notes': widget.specialRequests,
-          },
-        );
-        
-        // Get chef email
-        final chefProfile = await _supabaseClient
-            .from('profiles')
-            .select('email, first_name, last_name')
-            .eq('id', widget.chef.id)
-            .single();
-        
-        final chefEmail = chefProfile['email'];
-        final chefFullName = '${chefProfile['first_name'] ?? ''} ${chefProfile['last_name'] ?? ''}'.trim();
-        
-        // Send notification email to chef
-        if (chefEmail != null) {
-          await _supabaseClient.functions.invoke(
-            'send-chef-booking-notification',
-            body: {
-              'bookingId': bookingId,
-              'chefEmail': chefEmail,
-              'chefName': chefFullName.isEmpty ? widget.chef.name : chefFullName,
-              'userName': userName.isEmpty ? 'Kunde' : userName,
-              'bookingDate': widget.bookingDate.toIso8601String(),
-              'bookingTime': widget.bookingTime.format(context),
-              'guestCount': widget.guestCount,
-              'address': widget.address,
-              'totalAmount': totalAmountInOre / 100,
-              'notes': widget.specialRequests,
-            },
-          );
-        }
-      } catch (emailError) {
-        // Log error but don't fail the booking
-        print('Failed to send confirmation emails: $emailError');
-      }
-
-      if (!mounted) return;
-
+      // Payment successful!
+      // The booking will be created by the webhook handler
+      // No need to update anything here
+      
       // Navigate to success screen
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => BookingSuccessScreen(
-            bookingId: bookingId!,
-            chefName: widget.chef.name,
-            bookingDate: widget.bookingDate,
-            bookingTime: widget.bookingTime,
-            totalAmount: totalAmountInOre / 100,
+      if (mounted) {
+        // Notification emails will be sent by the webhook when booking is created
+        // No need to send them here
+        
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => BookingSuccessScreen(
+              bookingId: '', // We don't have the booking ID yet (created by webhook)
+              chefName: widget.chef.name,
+              bookingDate: widget.bookingDate,
+              bookingTime: widget.bookingTime,
+              totalAmount: totalAmountInOre / 100,
+            ),
           ),
-        ),
-      );
-    } catch (error) {
-      // If there was an error and booking was created, delete it
-      if (bookingId != null) {
-        try {
-          await _supabaseClient.from('bookings').delete().eq('id', bookingId);
-        } catch (deleteError) {
-          debugPrint('Error deleting failed booking: $deleteError');
-        }
+        );
       }
+    } catch (error) {
+      // No booking to delete - reservation will expire automatically
       
       setState(() => _isProcessing = false);
       
@@ -714,7 +651,7 @@ class BookingSuccessScreen extends StatelessWidget {
                 ),
                 child: Column(
                   children: [
-                    _buildDetailRow('Booking ID', bookingId.substring(0, 8).toUpperCase()),
+                    _buildDetailRow('Booking ID', bookingId.isEmpty ? 'BEKRÆFTES...' : bookingId.substring(0, 8).toUpperCase()),
                     const SizedBox(height: 12),
                     _buildDetailRow('Kok', chefName),
                     const SizedBox(height: 12),
@@ -776,7 +713,8 @@ class BookingSuccessScreen extends StatelessWidget {
                   ),
                 ),
                 onPressed: () {
-                  Navigator.of(context).popUntil((route) => route.isFirst);
+                  // Navigate to bookings page using go_router
+                  context.go('/bookings');
                 },
                 child: const Text('Gå til mine bookinger'),
               ),

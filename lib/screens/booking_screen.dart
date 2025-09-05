@@ -239,7 +239,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
             
             // Guest Count
             Text(
-              'Antal gæster',
+              'Antal personer',
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
@@ -258,7 +258,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                     color: theme.colorScheme.primary,
                   ),
                   const SizedBox(width: 12),
-                  const Text('Gæster'),
+                  const Text('Personer'),
                   const Spacer(),
                   IconButton(
                     onPressed: _guestCount > 1 ? () => setState(() => _guestCount--) : null,

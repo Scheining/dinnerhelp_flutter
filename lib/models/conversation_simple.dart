@@ -106,6 +106,7 @@ class UnifiedConversation {
   final String? bookingStatus;
   final DateTime? bookingDate;
   final int unreadCount;
+  final bool isArchived;
 
   UnifiedConversation({
     required this.id,
@@ -121,5 +122,6 @@ class UnifiedConversation {
     this.bookingStatus,
     this.bookingDate,
     this.unreadCount = 0,
+    this.isArchived = false,
   });
 }

@@ -1,0 +1,14 @@
+# Supabase Edge Functions Configuration
+
+# Disable JWT verification for Stripe webhook
+# This is safe because Stripe uses its own signature verification
+[functions.handle-stripe-webhook]
+verify_jwt = false
+
+# Database webhook forwarder - no JWT needed
+# This simply forwards events to the database for processing
+[functions.stripe-webhook-db]
+verify_jwt = false
+
+# Cleanup function can keep JWT enabled (called by cron/internal)
+# No configuration needed - defaults to verify_jwt = true

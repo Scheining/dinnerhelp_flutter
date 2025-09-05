@@ -15,7 +15,7 @@
   "dkkPerHour": "{rate} kr./time",
   "kmAway": "{distance} km væk",
   "reviews": "{count} anmeldelser",
-  "guests": "{count, plural, =1{1 gæst} other{{count} gæster}}",
+  "guests": "{count, plural, =1{1 person} other{{count} personer}}",
   "noMessagesYet": "Ingen beskeder endnu",
   "startConversationWithChef": "Start en samtale med en kok",
   "upcoming": "Kommende",
@@ -90,5 +90,5 @@
   "inProgress": "I gang",
   "disputed": "Disputeret",
   "refunded": "Refunderet",
-  "guestCount": "{count} gæster"
+  "guestCount": "{count} personer"
 }

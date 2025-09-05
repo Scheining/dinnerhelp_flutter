@@ -290,7 +290,7 @@ class _ChefSearchResultsScreenState extends ConsumerState<ChefSearchResultsScree
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Gæster', // Guests
+            'Personer', // Guests
             style: theme.textTheme.labelSmall?.copyWith(
               color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
             ),

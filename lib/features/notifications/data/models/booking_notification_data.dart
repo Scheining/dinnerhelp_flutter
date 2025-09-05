@@ -122,7 +122,7 @@ Detaljer:
 • Kok: {{chef_name}}
 • Dato: {{booking_date}}
 • Tid: {{booking_time}}
-• Gæster: {{guest_count}}
+• Personer: {{guest_count}}
 • Adresse: {{address}}
 
 Vi glæder os til at give dig en fantastisk madoplevelse!
@@ -175,7 +175,7 @@ The DinnerHelp Team
             <p><strong>Kok:</strong> {{chef_name}}</p>
             <p><strong>Dato:</strong> {{booking_date}}</p>
             <p><strong>Tid:</strong> {{booking_time}}</p>
-            <p><strong>Antal gæster:</strong> {{guest_count}}</p>
+            <p><strong>Antal personer:</strong> {{guest_count}}</p>
             <p><strong>Adresse:</strong> {{address}}</p>
         </div>
         
@@ -254,7 +254,7 @@ Detaljer:
 • Kunde: {{user_name}}
 • Dato: {{booking_date}}
 • Tid: {{booking_time}}
-• Gæster: {{guest_count}}
+• Personer: {{guest_count}}
 • Adresse: {{address}}
 
 Log ind på din konto for at se alle detaljer og forberede dig på madoplevelsen.
@@ -304,7 +304,7 @@ Detaljer:
 • Kok: {{chef_name}}
 • Dato: {{booking_date}}
 • Tid: {{booking_time}}
-• Gæster: {{guest_count}}
+• Personer: {{guest_count}}
 • Adresse: {{address}}
 
 Sørg for at:
@@ -399,7 +399,7 @@ Din booking med {{chef_name}} er blevet opdateret.
 Opdaterede booking detaljer:
 • Dato: {{booking_date}}
 • Tid: {{booking_time}}
-• Gæster: {{guest_count}}
+• Personer: {{guest_count}}
 • Adresse: {{address}}
 
 Hvis du har spørgsmål til disse ændringer, er du velkommen til at kontakte os.

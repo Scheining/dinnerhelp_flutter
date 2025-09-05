@@ -108,7 +108,7 @@ class _BookingReviewScreenState extends ConsumerState<BookingReviewScreen> {
                   const SizedBox(height: 12),
                   _buildDetailRow(
                     Icons.people,
-                    'Antal gæster',
+                    'Antal personer',
                     '${widget.guestCount} personer',
                     theme,
                   ),

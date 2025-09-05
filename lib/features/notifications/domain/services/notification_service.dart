@@ -834,7 +834,7 @@ class NotificationServiceImpl implements NotificationService {
         return 'Tid';
       case 'guestcount':
       case 'guests':
-        return 'Antal gæster';
+        return 'Antal personer';
       case 'address':
         return 'Adresse';
       case 'price':

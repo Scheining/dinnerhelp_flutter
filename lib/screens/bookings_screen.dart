@@ -434,7 +434,7 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
                   Positioned(
                     right: 20,
                     top: 20,
-                    child: _buildEnhancedStatusChip(booking.status),
+                    child: _buildEnhancedStatusChip(booking.status, paymentStatus: booking.paymentStatus),
                   ),
                   
                   // Chef Profile Photo
@@ -649,7 +649,7 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
                         Expanded(
                           child: _buildQuickInfoCard(
                             Icons.group_rounded,
-                            '${booking.guestCount} gæster',
+                            '${booking.guestCount} personer',
                             const Color(0xFF5AC8FA),
                           ),
                         ),
@@ -768,6 +768,50 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
                         ],
                       ),
                     ),
+                    
+                    // Cancellation deadline indicator (only for upcoming bookings with pending status)
+                    if (isUpcoming && booking.status == BookingStatus.pending) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: canCancel 
+                              ? Colors.green.withValues(alpha: 0.05)
+                              : Colors.orange.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: canCancel 
+                                ? Colors.green.withValues(alpha: 0.2)
+                                : Colors.orange.withValues(alpha: 0.2),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              canCancel ? Icons.check_circle_outline : Icons.info_outline,
+                              size: 18,
+                              color: canCancel ? Colors.green.shade600 : Colors.orange.shade600,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                canCancel 
+                                    ? 'Gratis afbestilling mulig (mere end 48 timer før)'
+                                    : 'Ingen refundering mulig (mindre end 48 timer før)',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: canCancel 
+                                      ? Colors.green.shade700
+                                      : Colors.orange.shade700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     
                     // Notes section if present
                     if (booking.notes != null && booking.notes!.isNotEmpty) ...[
@@ -943,56 +987,64 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
     );
   }
   
-  Widget _buildEnhancedStatusChip(BookingStatus status) {
+  Widget _buildEnhancedStatusChip(BookingStatus status, {PaymentStatus? paymentStatus}) {
     final l10n = context.l10n;
     Color backgroundColor;
     Color textColor;
     String statusText;
     IconData? icon;
     
-    switch (status) {
-      case BookingStatus.pending:
-        backgroundColor = Colors.orange.shade100;
-        textColor = Colors.orange.shade800;
-        statusText = l10n.pending;
-        icon = Icons.hourglass_empty_rounded;
-        break;
-      case BookingStatus.confirmed:
-        backgroundColor = Colors.green.shade100;
-        textColor = Colors.green.shade800;
-        statusText = 'Bekræftet';
-        icon = Icons.check_circle_rounded;
-        break;
-      case BookingStatus.inProgress:
-        backgroundColor = Colors.blue.shade100;
-        textColor = Colors.blue.shade800;
-        statusText = l10n.inProgress;
-        icon = Icons.restaurant_rounded;
-        break;
-      case BookingStatus.completed:
-        backgroundColor = Colors.grey.shade200;
-        textColor = Colors.grey.shade700;
-        statusText = l10n.completed;
-        icon = Icons.done_all_rounded;
-        break;
-      case BookingStatus.cancelled:
-        backgroundColor = Colors.red.shade100;
-        textColor = Colors.red.shade800;
-        statusText = l10n.cancelled;
-        icon = Icons.cancel_rounded;
-        break;
-      case BookingStatus.refunded:
-        backgroundColor = Colors.purple.shade100;
-        textColor = Colors.purple.shade800;
-        statusText = l10n.refunded;
-        icon = Icons.replay_rounded;
-        break;
-      case BookingStatus.disputed:
-        backgroundColor = Colors.deepOrange.shade100;
-        textColor = Colors.deepOrange.shade800;
-        statusText = l10n.disputed;
-        icon = Icons.warning_rounded;
-        break;
+    // Show "Betalt" (Paid) for completed bookings with successful payment
+    if (status == BookingStatus.completed && paymentStatus == PaymentStatus.succeeded) {
+      backgroundColor = const Color(0xFF4CAF50).withOpacity(0.1);
+      textColor = const Color(0xFF2E7D32);
+      statusText = 'Betalt';
+      icon = Icons.check_circle_rounded;
+    } else {
+      switch (status) {
+        case BookingStatus.pending:
+          backgroundColor = Colors.orange.shade100;
+          textColor = Colors.orange.shade800;
+          statusText = l10n.pending;
+          icon = Icons.hourglass_empty_rounded;
+          break;
+        case BookingStatus.confirmed:
+          backgroundColor = Colors.green.shade100;
+          textColor = Colors.green.shade800;
+          statusText = 'Bekræftet';
+          icon = Icons.check_circle_rounded;
+          break;
+        case BookingStatus.inProgress:
+          backgroundColor = Colors.blue.shade100;
+          textColor = Colors.blue.shade800;
+          statusText = l10n.inProgress;
+          icon = Icons.restaurant_rounded;
+          break;
+        case BookingStatus.completed:
+          backgroundColor = Colors.grey.shade200;
+          textColor = Colors.grey.shade700;
+          statusText = l10n.completed;
+          icon = Icons.done_all_rounded;
+          break;
+        case BookingStatus.cancelled:
+          backgroundColor = Colors.red.shade100;
+          textColor = Colors.red.shade800;
+          statusText = l10n.cancelled;
+          icon = Icons.cancel_rounded;
+          break;
+        case BookingStatus.refunded:
+          backgroundColor = Colors.purple.shade100;
+          textColor = Colors.purple.shade800;
+          statusText = l10n.refunded;
+          icon = Icons.replay_rounded;
+          break;
+        case BookingStatus.disputed:
+          backgroundColor = Colors.deepOrange.shade100;
+          textColor = Colors.deepOrange.shade800;
+          statusText = l10n.disputed;
+          icon = Icons.warning_rounded;
+          break;
+      }
     }
     
     return Container(
@@ -1067,9 +1119,9 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
     );
   }
 
-  Widget _buildStatusChip(BookingStatus status) {
+  Widget _buildStatusChip(BookingStatus status, {PaymentStatus? paymentStatus}) {
     // Now just delegates to the enhanced version
-    return _buildEnhancedStatusChip(status);
+    return _buildEnhancedStatusChip(status, paymentStatus: paymentStatus);
   }
 
   String _formatDate(DateTime dateTime) {
@@ -1114,11 +1166,20 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
   }
 
   bool _canCancelBooking(Booking booking) {
-    if (booking.status != BookingStatus.pending) {
+    // Allow cancellation for pending and confirmed bookings only
+    if (booking.status != BookingStatus.pending && booking.status != BookingStatus.confirmed) {
       return false;
     }
     
-    final hoursUntilBooking = booking.dateTime.difference(DateTime.now()).inHours;
+    // Check if booking is in the future (can't cancel past bookings)
+    final now = DateTime.now();
+    if (booking.dateTime.isBefore(now)) {
+      return false;
+    }
+    
+    // Enforce 48-hour cancellation policy
+    // Users cannot cancel if less than 48 hours before the booking
+    final hoursUntilBooking = booking.dateTime.difference(now).inHours;
     return hoursUntilBooking > 48;
   }
 
@@ -1140,18 +1201,24 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.75,
-        decoration: BoxDecoration(
-          color: Theme.of(context).brightness == Brightness.dark
-              ? Theme.of(context).colorScheme.surface
-              : Colors.white,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(25),
-            topRight: Radius.circular(25),
+          height: MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top - 5,
+          margin: EdgeInsets.only(
+            top: MediaQuery.of(context).padding.top + 5,
           ),
-        ),
-        child: Column(
-          children: [
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          decoration: BoxDecoration(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Theme.of(context).colorScheme.surface
+                : Colors.white,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(25),
+              topRight: Radius.circular(25),
+            ),
+          ),
+          child: Column(
+            children: [
             // Handle
             Container(
               margin: const EdgeInsets.only(top: 12),
@@ -1318,12 +1385,27 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
                                   ),
                                 ),
                                 const SizedBox(height: 4),
-                                _buildStatusChip(booking.status),
+                                _buildStatusChip(booking.status, paymentStatus: booking.paymentStatus),
                               ],
                             ),
                           ),
                         ],
                       ),
+                    ),
+                    const SizedBox(height: 24),
+                    
+                    // Booking Creation Date
+                    Text(
+                      'Booking oprettet',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildDetailTile(
+                      Icons.history_outlined, 
+                      'Booket den', 
+                      '${_formatDate(booking.createdAt)} kl. ${_formatTime(booking.createdAt)}'
                     ),
                     const SizedBox(height: 24),
                     
@@ -1335,9 +1417,9 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
                       ),
                     ),
                     const SizedBox(height: 16),
-                    _buildDetailTile(Icons.calendar_month, l10n.date, _formatDate(booking.dateTime)),
+                    _buildDetailTile(Icons.calendar_month, 'Service dato', _formatDate(booking.dateTime)),
                     _buildDetailTile(Icons.access_time, l10n.time, _formatTime(booking.dateTime)),
-                    _buildDetailTile(Icons.people, 'Gæster', '${booking.guestCount} personer'),
+                    _buildDetailTile(Icons.people, 'Personer', '${booking.guestCount} personer'),
                     _buildDetailTile(Icons.location_on, l10n.address, booking.address),
                     
                     if (booking.notes != null && booking.notes!.isNotEmpty) ...[
@@ -1400,13 +1482,171 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
                         ],
                       ),
                     ),
-                    const SizedBox(height: 40),
+                    
+                    // Payment Details Section (for paid bookings)
+                    if (booking.paymentStatus == PaymentStatus.succeeded) ...[
+                      const SizedBox(height: 24),
+                      Text(
+                        'Betalingsdetaljer',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.green.shade900.withOpacity(0.2)
+                              : Colors.green.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.green.shade700.withOpacity(0.3)
+                                : Colors.green.shade200,
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.check_circle,
+                                  color: Colors.green.shade700,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Betaling gennemført',
+                                  style: TextStyle(
+                                    color: Colors.green.shade700,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            if (booking.stripePaymentIntentId != null) ...[
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Transaktion ID',
+                                    style: TextStyle(
+                                      color: Theme.of(context).brightness == Brightness.dark
+                                          ? Colors.grey.shade400
+                                          : Colors.grey.shade600,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  Text(
+                                    '...${booking.stripePaymentIntentId!.substring(booking.stripePaymentIntentId!.length - 8)}',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontFamily: 'monospace',
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                    
+                    const SizedBox(height: 24),
+                    
+                    // Action buttons
+                    if (booking.status == BookingStatus.pending || booking.status == BookingStatus.confirmed) ...[
+                      Row(
+                        children: [
+                          // Cancel button (only if cancellable)
+                          if (_canCancelBooking(booking))
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                  _showCancelConfirmation(booking);
+                                },
+                                icon: const Icon(Icons.cancel_outlined),
+                                label: const Text('Annuller booking'),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: Colors.red,
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  side: const BorderSide(color: Colors.red),
+                                ),
+                              ),
+                            ),
+                          if (_canCancelBooking(booking))
+                            const SizedBox(width: 12),
+                          // Contact chef button
+                          Expanded(
+                            child: FilledButton.icon(
+                              onPressed: () {
+                                Navigator.of(context).pop();
+                                // Navigate to messages
+                                Navigator.pushNamed(
+                                  context,
+                                  '/messages',
+                                  arguments: {'chefId': booking.chefId, 'chefName': booking.chefName},
+                                );
+                              },
+                              icon: const Icon(Icons.chat_bubble_outline),
+                              label: const Text('Kontakt kok'),
+                              style: FilledButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 40),
+                    ] else if (booking.paymentStatus == PaymentStatus.succeeded) ...[
+                      // Action buttons for paid bookings
+                      Column(
+                        children: [
+                          // Send receipt button
+                          FilledButton.icon(
+                            onPressed: () => _sendReceipt(context, booking),
+                            icon: const Icon(Icons.email_outlined),
+                            label: const Text('Send kvittering på mail'),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: Theme.of(context).colorScheme.primary,
+                              minimumSize: const Size(double.infinity, 48),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          // Contact support button
+                          OutlinedButton.icon(
+                            onPressed: () => _contactSupport(context, booking),
+                            icon: const Icon(Icons.support_agent_outlined),
+                            label: const Text('Kontakt support'),
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size(double.infinity, 48),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 40),
+                    ],
                   ],
                 ),
               ),
             ),
           ],
-        ),
+          ),
       ),
     );
   }
@@ -1489,22 +1729,38 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
 
   void _showCancelConfirmation(Booking booking) {
     final l10n = context.l10n;
+    
+    // Calculate hours until booking for refund policy display
+    final now = DateTime.now();
+    final hoursUntilBooking = booking.dateTime.difference(now).inHours;
+    
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
+      isScrollControlled: true,  // Allow the sheet to be full height
       builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: Theme.of(context).brightness == Brightness.dark
-              ? Theme.of(context).colorScheme.surface
-              : Colors.white,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(25),
-            topRight: Radius.circular(25),
+          height: MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top - 5,
+          margin: EdgeInsets.only(
+            top: MediaQuery.of(context).padding.top + 5,
           ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+          padding: EdgeInsets.only(
+            left: 24,
+            right: 24,
+            top: 24,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 24,  // Account for keyboard if any
+          ),
+          decoration: BoxDecoration(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Theme.of(context).colorScheme.surface
+                : Colors.white,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(25),
+              topRight: Radius.circular(25),
+            ),
+          ),
+          child: SingleChildScrollView(  // Make content scrollable
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
           children: [
             Container(
               width: 40,
@@ -1559,28 +1815,61 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
               ),
             ),
             const SizedBox(height: 16),
+            // Refund policy notice
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: Colors.green.shade50,
+                color: hoursUntilBooking > 48 
+                    ? Colors.green.withValues(alpha: 0.08)
+                    : Colors.orange.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.green.shade200),
+                border: Border.all(
+                  color: hoursUntilBooking > 48 
+                      ? Colors.green.withValues(alpha: 0.2)
+                      : Colors.orange.withValues(alpha: 0.2),
+                  width: 1,
+                ),
               ),
               child: Row(
                 children: [
                   Icon(
-                    Icons.info_outline,
-                    size: 20,
-                    color: Colors.green.shade700,
+                    hoursUntilBooking > 48 
+                        ? Icons.check_circle_outline
+                        : Icons.warning_amber_rounded,
+                    size: 22,
+                    color: hoursUntilBooking > 48 
+                        ? Colors.green.shade600
+                        : Colors.orange.shade600,
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Text(
-                      l10n.refundNotice,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.green.shade700,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          hoursUntilBooking > 48 ? 'Bemærk:' : 'Advarsel:',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: hoursUntilBooking > 48 
+                                ? Colors.green.shade700
+                                : Colors.orange.shade700,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          hoursUntilBooking > 48 
+                              ? 'Du vil modtage fuld refundering, da der er mere end 48 timer til bookingen.'
+                              : 'Ingen refundering mulig, da der er mindre end 48 timer til bookingen.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: hoursUntilBooking > 48 
+                                ? Colors.green.shade700
+                                : Colors.orange.shade700,
+                            height: 1.3,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -1598,7 +1887,7 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: Text(l10n.keepBooking),
+                    child: const Text('Behold booking'),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -1615,14 +1904,15 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: Text(l10n.yesCancel),
+                    child: const Text('Ja, annuller'),
                   ),
                 ),
               ],
             ),
             SizedBox(height: MediaQuery.of(context).padding.bottom + 8),
           ],
-        ),
+            ),
+          ),
       ),
     );
   }
@@ -1663,39 +1953,65 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
     });
 
     try {
-      // Use the booking actions provider to cancel the booking
-      final bookingActions = ref.read(bookingActionsProvider);
-      await bookingActions.cancelBooking(
-        booking.id, 
-        cancellationReason: 'User requested cancellation more than 48 hours before booking',
-      );
-
-      // If there's a payment, process refund
+      // If there's a payment, call refund-payment function which handles cancellation and refund
       if (booking.paymentStatus == PaymentStatus.succeeded && booking.stripePaymentIntentId != null) {
-        // Call refund Edge Function
+        // Call refund-payment Edge Function - it handles both cancellation and refund
         final supabase = Supabase.instance.client;
-        await supabase.functions.invoke(
-          'process-refund',
+        final response = await supabase.functions.invoke(
+          'refund-payment',
           body: {
             'booking_id': booking.id,
-            'amount': booking.totalPrice.toInt(),
-            'reason': 'requested_by_customer',
+            'cancelled_by': 'user',
+            'reason': 'User requested cancellation',
           },
         );
-      }
-
-      // Show success message
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(l10n.bookingCancelledSuccess),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
+        
+        // The function returns info about whether refund was processed
+        if (response.data != null && response.data['refunded'] == true) {
+          final refundAmount = response.data['refund_amount'];
+          // Refund will be processed
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Booking cancelled. Refund of $refundAmount kr will be processed.'),
+                backgroundColor: Colors.green,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+        } else {
+          // No refund (within 48 hours)
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Booking cancelled. No refund due to cancellation within 48 hours.'),
+                backgroundColor: Colors.orange,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+        }
+      } else {
+        // No payment to refund, just cancel the booking
+        final bookingActions = ref.read(bookingActionsProvider);
+        await bookingActions.cancelBooking(
+          booking.id, 
+          cancellationReason: 'User requested cancellation',
         );
+        
+        // Show cancellation success
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.bookingCancelledSuccess),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          );
+        }
       }
     } catch (e) {
       // Show error message
@@ -1718,5 +2034,95 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen> with SingleTick
         });
       }
     }
+  }
+
+  Future<void> _sendReceipt(BuildContext context, Booking booking) async {
+    final l10n = context.l10n;
+    
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+    
+    try {
+      // Get current user email
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null || user.email == null) {
+        throw Exception('User email not found');
+      }
+      
+      // Call Edge Function to send receipt
+      final response = await Supabase.instance.client.functions.invoke(
+        'send-receipt-email',
+        body: {
+          'booking_id': booking.id,
+          'recipient_email': user.email,
+        },
+      );
+      
+      // Check if the response indicates an error
+      if (response.data != null && response.data['error'] != null) {
+        throw Exception(response.data['error']);
+      }
+      
+      // Check for success flag
+      if (response.data == null || response.data['success'] != true) {
+        throw Exception('Failed to send receipt');
+      }
+      
+      // Close loading dialog
+      if (mounted) {
+        Navigator.of(context).pop();
+        Navigator.of(context).pop(); // Close the booking details modal
+        
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Kvittering sendt til ${user.email}'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      // Close loading dialog
+      if (mounted) {
+        Navigator.of(context).pop();
+        
+        // Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Kunne ikke sende kvittering: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  void _contactSupport(BuildContext context, Booking booking) {
+    // Navigate to messages with pre-filled support context
+    Navigator.of(context).pop(); // Close the booking details modal
+    Navigator.pushNamed(
+      context,
+      '/messages',
+      arguments: {
+        'recipientId': 'support', // Special support ID
+        'recipientName': 'DinnerHelp Support',
+        'context': 'Booking #${booking.id.substring(0, 8).toUpperCase()}',
+        'prefilledMessage': 'Jeg har brug for hjælp med min booking #${booking.id.substring(0, 8).toUpperCase()}',
+      },
+    );
   }
 }

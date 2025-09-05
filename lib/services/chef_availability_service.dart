@@ -309,6 +309,45 @@ class ChefAvailabilityService {
       }
     }
     
+    // NEW: Also check for active payment reservations
+    final activeReservations = await _supabaseClient
+        .from('active_booking_reservations')
+        .select('start_time, end_time')
+        .eq('chef_id', chefId)
+        .eq('date', date);
+    
+    for (final reservation in activeReservations) {
+      final startTimeStr = reservation['start_time'] as String;
+      final endTimeStr = reservation['end_time'] as String;
+      
+      final startParts = startTimeStr.split(':');
+      final endParts = endTimeStr.split(':');
+      
+      final reservationStart = DateTime(
+        bookingStart.year,
+        bookingStart.month,
+        bookingStart.day,
+        int.parse(startParts[0]),
+        int.parse(startParts[1]),
+      );
+      
+      final reservationEnd = DateTime(
+        bookingStart.year,
+        bookingStart.month,
+        bookingStart.day,
+        int.parse(endParts[0]),
+        int.parse(endParts[1]),
+      );
+      
+      // Check for overlap with buffer
+      if (bufferedStart.isBefore(reservationEnd) && bufferedEnd.isAfter(reservationStart)) {
+        return AvailabilityCheckResult(
+          isAvailable: false,
+          message: 'Dette tidspunkt er midlertidigt reserveret af en anden kunde. Prøv igen om et par minutter eller vælg et andet tidspunkt.',
+        );
+      }
+    }
+    
     return AvailabilityCheckResult(isAvailable: true);
   }
   

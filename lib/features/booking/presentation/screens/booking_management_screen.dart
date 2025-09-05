@@ -195,7 +195,7 @@ class _BookingManagementScreenState extends ConsumerState<BookingManagementScree
             
             _buildBookingDetailRow(
               icon: Icons.people,
-              label: 'Gæster',
+              label: 'Personer',
               value: '${booking.guestCount} personer',
               theme: theme,
             ),

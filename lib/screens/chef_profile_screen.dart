@@ -229,7 +229,7 @@ class ChefProfileScreen extends ConsumerWidget {
                                   child: _buildInfoCard(
                                     context,
                                     Icons.groups,
-                                    'Gæster',
+                                    'Personer',
                                     '2-20',
                                     Colors.purple.shade50,
                                     Colors.purple.shade700,

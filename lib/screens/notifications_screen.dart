@@ -7,6 +7,7 @@ import 'package:homechef/providers/booking_provider.dart';
 import 'package:homechef/providers/messaging_provider.dart';
 import 'package:homechef/providers/auth_provider.dart';
 import 'package:homechef/screens/chat_screen.dart';
+import 'package:homechef/screens/archived_messages_screen.dart';
 import 'package:homechef/models/conversation_simple.dart';
 import 'package:intl/intl.dart';
 
@@ -101,6 +102,11 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen>
       vsync: this,
       initialIndex: widget.initialTabIndex,
     );
+    _tabController.addListener(() {
+      if (mounted) {
+        setState(() {}); // Rebuild to show/hide archive icon
+      }
+    });
   }
 
   @override
@@ -145,6 +151,21 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen>
               ),
               centerTitle: false,
               actions: [
+                // Archive icon - only show in Messages tab
+                if (_tabController.index == 1)
+                  IconButton(
+                    icon: Icon(Icons.archive_outlined, 
+                      color: theme.brightness == Brightness.dark ? Colors.white : Colors.black),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ArchivedMessagesScreen(),
+                        ),
+                      );
+                    },
+                    tooltip: 'Slettede beskeder',
+                  ),
                 PopupMenuButton<String>(
                   icon: Icon(Icons.more_vert, color: theme.brightness == Brightness.dark ? Colors.white : Colors.black),
                   onSelected: (value) {
@@ -315,7 +336,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen>
                   }
                   
                   return ListView.builder(
-                    padding: EdgeInsets.zero,
+                    padding: const EdgeInsets.only(top: 7),
                     itemCount: notifications.length,
                     itemBuilder: (context, index) {
                       final notification = notifications[index];
@@ -324,16 +345,6 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen>
                         endActionPane: ActionPane(
                           motion: const DrawerMotion(),
                           children: [
-                            SlidableAction(
-                              onPressed: (context) {
-                                // Archive notification
-                                _archiveNotification(notification.id);
-                              },
-                              backgroundColor: Colors.blue,
-                              foregroundColor: Colors.white,
-                              icon: Icons.archive,
-                              label: 'Arkivér',
-                            ),
                             SlidableAction(
                               onPressed: (context) {
                                 // Delete notification
@@ -423,7 +434,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen>
                   }
                   
                   return ListView.builder(
-                    padding: EdgeInsets.zero,
+                    padding: const EdgeInsets.only(top: 7),
                     itemCount: conversations.length,
                     itemBuilder: (context, index) {
                       final conversation = conversations[index];
@@ -434,18 +445,12 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen>
                           children: [
                             SlidableAction(
                               onPressed: (context) {
-                                // Archive conversation
-                                _archiveMessage(conversation.id);
-                              },
-                              backgroundColor: Colors.blue,
-                              foregroundColor: Colors.white,
-                              icon: Icons.archive,
-                              label: 'Arkivér',
-                            ),
-                            SlidableAction(
-                              onPressed: (context) {
-                                // Delete conversation
-                                _deleteMessage(conversation.id);
+                                // Delete conversation (hides it from view)
+                                // Determine the correct ID based on conversation type
+                                final conversationId = conversation.type == ConversationType.inquiry
+                                    ? conversation.inquiryId!
+                                    : conversation.bookingId!;
+                                _deleteMessage(conversationId, conversation);
                               },
                               backgroundColor: Colors.red,
                               foregroundColor: Colors.white,
@@ -586,27 +591,55 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen>
     }
   }
   
-  void _archiveMessage(String messageId) async {
-    // Mock implementation - would normally update Supabase
-    await Future.delayed(const Duration(milliseconds: 500));
+  void _archiveMessage(String conversationId, UnifiedConversation conversation) async {
+    // Use the real provider method to archive the conversation
+    final success = await ref
+        .read(unifiedConversationsNotifierProvider.notifier)
+        .archiveConversation(conversationId, conversation.type);
     
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Besked arkiveret'),
-          duration: Duration(seconds: 2),
-        ),
-      );
+      if (success) {
+        // Force refresh the conversations list to remove archived item
+        ref.invalidate(unifiedConversationsNotifierProvider);
+        
+        // Show success message with undo option
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Besked arkiveret'),
+            duration: const Duration(seconds: 4),
+            action: SnackBarAction(
+              label: 'Fortryd',
+              onPressed: () async {
+                // Undo the archive action
+                await ref
+                    .read(unifiedConversationsNotifierProvider.notifier)
+                    .unarchiveConversation(conversationId, conversation.type);
+                // Refresh list after undo
+                ref.invalidate(unifiedConversationsNotifierProvider);
+              },
+            ),
+          ),
+        );
+      } else {
+        // Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Kunne ikke arkivere besked'),
+            duration: Duration(seconds: 2),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
   
-  void _deleteMessage(String messageId) async {
+  void _deleteMessage(String conversationId, UnifiedConversation conversation) async {
     // Show confirmation dialog
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Slet besked'),
-        content: const Text('Er du sikker på, at du vil slette denne besked?'),
+        title: const Text('Fjern besked'),
+        content: const Text('Beskeden fjernes fra din liste. Den vises igen hvis du modtager et nyt svar.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -615,23 +648,38 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen>
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Slet'),
+            child: const Text('Fjern'),
           ),
         ],
       ),
     );
     
     if (confirm == true) {
-      // Mock implementation - would normally update Supabase
-      await Future.delayed(const Duration(milliseconds: 500));
+      // Use the real provider method to delete the conversation
+      final success = await ref
+          .read(unifiedConversationsNotifierProvider.notifier)
+          .deleteConversation(conversationId, conversation.type);
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Besked slettet'),
-            duration: Duration(seconds: 2),
-          ),
-        );
+        if (success) {
+          // Force refresh the conversations list to remove deleted item
+          ref.invalidate(unifiedConversationsNotifierProvider);
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Besked fjernet'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Kunne ikke fjerne besked'),
+              duration: Duration(seconds: 2),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     }
   }

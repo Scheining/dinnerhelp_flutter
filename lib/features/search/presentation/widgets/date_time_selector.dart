@@ -191,7 +191,7 @@ class _DateTimeSelectorState extends ConsumerState<DateTimeSelector> {
 
                   // Number of Guests
                   Text(
-                    'Antal gæster',
+                    'Antal personer',
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),

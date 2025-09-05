@@ -217,7 +217,7 @@ class _BookingSummaryScreenState extends ConsumerState<BookingSummaryScreen> {
             
             _buildDetailRow(
               icon: Icons.people,
-              label: 'Gæster',
+              label: 'Personer',
               value: '${widget.numberOfGuests} personer',
               theme: theme,
             ),

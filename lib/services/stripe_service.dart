@@ -37,12 +37,15 @@ class StripeService {
   }
   
   /// Create payment intent via Edge Function and return client secret
+  /// Now supports both old (with bookingId) and new (with bookingData) approaches
   Future<String> createPaymentIntent({
-    required String bookingId,
+    String? bookingId, // Now optional for backward compatibility
     required int amount,
     required int serviceFeeAmount,
+    int? paymentProcessingFee, // New parameter for payment processing fee
     required int vatAmount,
     required String chefId,
+    Map<String, dynamic>? bookingData, // New parameter for reservation system
   }) async {
     try {
       // Get chef's Stripe account ID
@@ -58,16 +61,28 @@ class StripeService {
         throw Exception('Chef does not have a valid Stripe account');
       }
       
+      // Prepare request body
+      final requestBody = {
+        'amount': amount,
+        'service_fee_amount': serviceFeeAmount,
+        'payment_processing_fee': paymentProcessingFee ?? 0,
+        'vat_amount': vatAmount,
+        'chef_stripe_account_id': chefStripeAccountId,
+      };
+      
+      // Add either booking_id (old) or booking_data (new)
+      if (bookingId != null) {
+        requestBody['booking_id'] = bookingId;
+      } else if (bookingData != null) {
+        requestBody['booking_data'] = bookingData;
+      } else {
+        throw Exception('Either bookingId or bookingData must be provided');
+      }
+      
       // Create payment intent via Edge Function
       final response = await _supabaseClient.functions.invoke(
         'create-payment-intent',
-        body: {
-          'booking_id': bookingId,
-          'amount': amount,
-          'service_fee_amount': serviceFeeAmount,
-          'vat_amount': vatAmount,
-          'chef_stripe_account_id': chefStripeAccountId,
-        },
+        body: requestBody,
       );
       
       if (response.data == null || response.data['client_secret'] == null) {
