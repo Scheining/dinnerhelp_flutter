@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // Main navigation
 import 'package:homechef/screens/main_navigation_screen.dart';
@@ -12,6 +13,7 @@ import 'package:homechef/screens/bookings_screen.dart';
 import 'package:homechef/screens/notifications_screen.dart';
 import 'package:homechef/screens/profile_screen.dart';
 import 'package:homechef/screens/chef_profile_screen.dart';
+import 'package:homechef/screens/onboarding_screen.dart';
 
 // Profile screens
 import 'package:homechef/screens/profile/personal_information_screen.dart';
@@ -46,21 +48,31 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: '/',
     debugLogDiagnostics: true,
     refreshListenable: AuthStateNotifier(),
-    redirect: (context, state) {
+    redirect: (context, state) async {
       // Check if user is authenticated
       final isAuthenticated = Supabase.instance.client.auth.currentUser != null;
       final isAuthRoute = state.uri.path.startsWith('/auth');
+      final isOnboardingRoute = state.uri.path == '/onboarding';
       
       debugPrint('Router redirect - Authenticated: $isAuthenticated, AuthRoute: $isAuthRoute, Path: ${state.uri.path}');
       
       // If not authenticated and trying to access protected route
-      if (!isAuthenticated && !isAuthRoute) {
+      if (!isAuthenticated && !isAuthRoute && !isOnboardingRoute) {
         return '/auth/signin';
       }
       
-      // If authenticated and trying to access auth routes
-      if (isAuthenticated && isAuthRoute) {
-        return '/';
+      // If authenticated
+      if (isAuthenticated) {
+        // If authenticated and trying to access auth routes, go to onboarding first
+        if (isAuthRoute) {
+          return '/onboarding';
+        }
+        
+        // If coming from a fresh login (typically from auth), show onboarding
+        if (state.uri.path == '/' && !isOnboardingRoute) {
+          // Check if this is a fresh navigation after login
+          return '/onboarding';
+        }
       }
       
       return null;
@@ -76,6 +88,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/auth/signup',
         name: 'signup',
         builder: (context, state) => const SignUpScreen(),
+      ),
+      // Onboarding route
+      GoRoute(
+        path: '/onboarding',
+        name: 'onboarding',
+        builder: (context, state) => const OnboardingScreen(),
       ),
       // Main shell with bottom navigation
       ShellRoute(

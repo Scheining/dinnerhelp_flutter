@@ -48,6 +48,8 @@ dependencies:
   flutter_slidable: ^3.1.1
   # For image picking
   image_picker: ^1.1.2
+  # For onboarding slider
+  flutter_onboarding_slider: ^1.0.11
   # For enhanced payment card UI
   payment_card: ^0.0.1
 

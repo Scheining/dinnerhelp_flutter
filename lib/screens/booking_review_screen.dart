@@ -138,7 +138,7 @@ class _BookingReviewScreenState extends ConsumerState<BookingReviewScreen> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Leveringsadresse',
+                        'Din adresse',
                         style: theme.textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
@@ -227,13 +227,20 @@ class _BookingReviewScreenState extends ConsumerState<BookingReviewScreen> {
 
             const SizedBox(height: 24),
 
-            // Terms and Conditions
+            // DinnerHelp Guarantee
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.blue.shade50,
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.green.shade50,
+                    Colors.blue.shade50,
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.blue.shade200),
+                border: Border.all(color: Colors.green.shade300),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -241,29 +248,51 @@ class _BookingReviewScreenState extends ConsumerState<BookingReviewScreen> {
                   Row(
                     children: [
                       Icon(
-                        Icons.info_outline,
-                        color: Colors.blue.shade700,
-                        size: 20,
+                        Icons.verified_user,
+                        color: Colors.green.shade700,
+                        size: 24,
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        'Vigtig information',
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: Colors.blue.shade700,
+                      Expanded(
+                        child: Text(
+                          'DinnerHelp-garantien',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green.shade700,
+                          ),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    '• Bookingen er først bekræftet når kokken accepterer\n'
-                    '• Du vil modtage en notifikation når kokken svarer\n'
-                    '• Betaling sker først når kokken har accepteret\n'
-                    '• Gratis afbestilling op til 48 timer før',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: Colors.blue.shade700,
-                      height: 1.5,
+                    'Din tryghed først – screenede helpers, sikker betaling og fuld forsikring på alle bookinger.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: Colors.green.shade800,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  InkWell(
+                    onTap: () => _showGuaranteeDetails(context),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Læs mere',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.w600,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.arrow_forward_ios,
+                          size: 12,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -432,6 +461,111 @@ class _BookingReviewScreenState extends ConsumerState<BookingReviewScreen> {
           totalAmount: widget.totalPrice,
         ),
       ),
+    );
+  }
+
+  void _showGuaranteeDetails(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(
+                Icons.verified_user,
+                color: Colors.green.shade700,
+                size: 28,
+              ),
+              const SizedBox(width: 8),
+              const Text('DinnerHelp-garantien'),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Din tryghed i køkkenet',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Vi ved, det er et stort skridt at invitere en helper hjem i dit køkken. Derfor har vi skabt DinnerHelp-garantien, som giver dig fuld ro:',
+                ),
+                const SizedBox(height: 16),
+                _buildGuaranteePoint(
+                  Icons.person_search,
+                  'Screenede helpers',
+                  'Alle helpers er kvalitetssikret gennem vores optagelsesproces.',
+                ),
+                const SizedBox(height: 12),
+                _buildGuaranteePoint(
+                  Icons.lock,
+                  'Sikker betaling',
+                  'Al betaling sker gennem DinnerHelp-appen, så du er beskyttet mod snyd eller uoverensstemmelser.',
+                ),
+                const SizedBox(height: 12),
+                _buildGuaranteePoint(
+                  Icons.shield,
+                  'Forsikringsdækning',
+                  'Hvis der mod forventning skulle ske uheld i forbindelse med din booking, er du dækket gennem DinnerHelps forsikring.',
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Med DinnerHelp-garantien kan du føle dig tryg i, at både kvalitet, sikkerhed og betaling er på plads – hver eneste gang.',
+                  style: TextStyle(
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Luk'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildGuaranteePoint(IconData icon, String title, String description) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(
+          icon,
+          size: 20,
+          color: Colors.green.shade700,
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                description,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey.shade700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

@@ -46,7 +46,7 @@ class LocationSelector extends ConsumerWidget {
             child: locationState.when(
               data: (location) => _buildLocationDisplay(
                 context, 
-                location?.address ?? 'Select Location',
+                location?.address ?? 'Vælg placering',
                 hasLocation: location != null,
               ),
               loading: () => _buildLoadingDisplay(context),

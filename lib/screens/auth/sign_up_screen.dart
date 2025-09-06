@@ -98,13 +98,15 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                         width: 80,
                         height: 80,
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.primaryContainer,
                           shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.person_add,
-                          size: 40,
-                          color: theme.colorScheme.primary,
+                          image: DecorationImage(
+                            image: AssetImage(
+                              theme.brightness == Brightness.dark
+                                  ? 'assets/images/round_logo_dark_500x500.png'
+                                  : 'assets/images/round_logo_500x500.png',
+                            ),
+                            fit: BoxFit.cover,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 24),

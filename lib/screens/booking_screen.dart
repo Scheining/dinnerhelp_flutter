@@ -9,6 +9,7 @@ import 'package:homechef/services/location_service.dart';
 import 'package:homechef/widgets/address_autocomplete_field.dart';
 import 'package:homechef/services/dawa_address_service.dart';
 import 'package:homechef/screens/booking_review_screen.dart';
+import 'package:homechef/services/chef_availability_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class BookingScreen extends ConsumerStatefulWidget {
@@ -36,6 +37,8 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
   bool _useCustomAddress = false;
   Map<String, dynamic>? _selectedSavedAddress;
   final _supabase = Supabase.instance.client;
+  final _availabilityService = ChefAvailabilityService();
+  List<int> _workingWeekdays = [];
   
   double get _basePrice => widget.chef.hourlyRate * _hours;
   double get _serviceFee => _basePrice * 0.1;
@@ -46,6 +49,15 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
   void initState() {
     super.initState();
     _loadSavedAddresses();
+    _loadChefWorkingDays();
+  }
+  
+  Future<void> _loadChefWorkingDays() async {
+    final workingDays = await _availabilityService.getWorkingWeekdays(widget.chef.id);
+    setState(() {
+      _workingWeekdays = workingDays;
+    });
+    print('Chef ${widget.chef.name} works on weekdays: $_workingWeekdays');
   }
 
   Future<void> _loadSavedAddresses() async {
@@ -192,6 +204,37 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                   IconButton(
                     onPressed: () => setState(() => _hours++),
                     icon: const Icon(Icons.add_circle_outline),
+                  ),
+                ],
+              ),
+            ),
+            
+            // Dish estimation helper text
+            Container(
+              margin: const EdgeInsets.only(top: 8),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.blue.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    size: 20,
+                    color: Colors.blue.shade700,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'En $_hours-timers booking svarer typisk til $_hours–${_hours + 1} retter',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.blue.shade800,
+                        height: 1.3,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -690,14 +733,67 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
   Future<void> _selectDate() async {
     final date = await showDatePicker(
       context: context,
-      initialDate: DateTime.now().add(const Duration(days: 1)),
+      initialDate: _getNextAvailableDate(),
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 90)),
+      selectableDayPredicate: (DateTime date) {
+        // Only allow selection of days when chef is working
+        final weekday = date.weekday;
+        final isWorkingDay = _workingWeekdays.contains(weekday);
+        
+        if (!isWorkingDay) {
+          print('Date ${date.toIso8601String()} (weekday $weekday) is not a working day');
+        }
+        
+        return isWorkingDay;
+      },
+      helpText: 'Vælg en dag hvor kokken arbejder',
+      errorFormatText: 'Ugyldig dato',
+      errorInvalidText: 'Kokken arbejder ikke på denne dag',
     );
     if (date != null) {
+      // Double-check the selected date is valid
+      if (!_workingWeekdays.contains(date.weekday)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Kokken arbejder ikke på ${_getDanishDayName(date.weekday)}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+      
       setState(() {
         _selectedDate = date;
       });
+    }
+  }
+  
+  DateTime _getNextAvailableDate() {
+    // Find the next date when the chef is working
+    var date = DateTime.now().add(const Duration(days: 1));
+    int attempts = 0;
+    while (attempts < 90) {
+      if (_workingWeekdays.contains(date.weekday)) {
+        return date;
+      }
+      date = date.add(const Duration(days: 1));
+      attempts++;
+    }
+    // Fallback to tomorrow if no working days found
+    return DateTime.now().add(const Duration(days: 1));
+  }
+  
+  String _getDanishDayName(int weekday) {
+    switch (weekday) {
+      case 1: return 'mandag';
+      case 2: return 'tirsdag';
+      case 3: return 'onsdag';
+      case 4: return 'torsdag';
+      case 5: return 'fredag';
+      case 6: return 'lørdag';
+      case 7: return 'søndag';
+      default: return '';
     }
   }
 

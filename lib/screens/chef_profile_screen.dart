@@ -152,6 +152,36 @@ class ChefProfileScreen extends ConsumerWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
+                                // Security guarantee text
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  margin: const EdgeInsets.only(bottom: 16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green.shade50,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: Colors.green.shade200),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.verified_user,
+                                        size: 20,
+                                        color: Colors.green.shade700,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          'Alle Helpers er screenet og dækket af DinnerHelp-garantien.',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: Colors.green.shade800,
+                                            height: 1.3,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                                 Text(
                               'Om kokken',
                               style: TextStyle(

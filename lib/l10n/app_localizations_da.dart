@@ -36,10 +36,10 @@ class AppLocalizationsDa extends AppLocalizations {
   String get seeAll => 'Se alle';
 
   @override
-  String get featuredChefs => 'Udvalgte kokke';
+  String get featuredChefs => 'Udvalgte DinnerHelpers';
 
   @override
-  String get bookChef => 'Book kok';
+  String get bookChef => 'Book DinnerHelper';
 
   @override
   String dkkPerHour(int rate) {

@@ -308,19 +308,19 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
 
             const SizedBox(height: 24),
 
-            // Payment Info
+            // Important Information
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.blue.shade50,
+                color: Colors.amber.shade50,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.blue.shade200),
+                border: Border.all(color: Colors.amber.shade300),
               ),
               child: Row(
                 children: [
                   Icon(
                     Icons.info_outline,
-                    color: Colors.blue.shade700,
+                    color: Colors.amber.shade800,
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -328,19 +328,22 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Sådan fungerer betalingen',
+                          'Vigtig information',
                           style: theme.textTheme.titleSmall?.copyWith(
-                            color: Colors.blue.shade700,
+                            color: Colors.amber.shade800,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          '• Du betaler sikkert med kort eller Apple/Google Pay\n'
-                          '• Beløbet reserveres nu og trækkes efter service\n'
-                          '• Fuld refundering ved aflysning 24+ timer før',
+                          '• Bookingen er først bekræftet når kokken accepterer\n'
+                          '• Du vil modtage en notifikation når kokken svarer\n'
+                          '• Efter kokkens accept kan du chatte og aftale menuen\n'
+                          '• Beløbet reserveres ved booking og trækkes når kokken accepterer\n'
+                          '• Gratis afbestilling op til 48 timer før med fuld refundering',
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: Colors.blue.shade700,
+                            color: Colors.amber.shade800,
+                            height: 1.5,
                           ),
                         ),
                       ],

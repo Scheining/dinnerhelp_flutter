@@ -186,7 +186,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         letterSpacing: 0.2,
                       ),
                       decoration: InputDecoration(
-                        hintText: 'Søg kokke, køkkener eller lokationer...',
+                        hintText: 'Søg efter kokke, byer eller køkkentyper...',
                         hintStyle: TextStyle(
                           color: Colors.grey.shade500,
                           fontWeight: FontWeight.w400,

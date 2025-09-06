@@ -6,6 +6,37 @@ class ChefAvailabilityService {
   
   ChefAvailabilityService({SupabaseClient? supabaseClient})
       : _supabaseClient = supabaseClient ?? Supabase.instance.client;
+  
+  /// Get the working days for a chef (for UI calendar to disable non-working days)
+  Future<List<int>> getWorkingWeekdays(String chefId) async {
+    try {
+      final response = await _supabaseClient
+          .from('chef_working_hours')
+          .select()
+          .eq('chef_id', chefId)
+          .maybeSingle();
+      
+      if (response == null) {
+        // No working hours set, assume all days available
+        return [1, 2, 3, 4, 5, 6, 7];
+      }
+      
+      final workingDays = <int>[];
+      if (response['monday_enabled'] == true) workingDays.add(1);
+      if (response['tuesday_enabled'] == true) workingDays.add(2);
+      if (response['wednesday_enabled'] == true) workingDays.add(3);
+      if (response['thursday_enabled'] == true) workingDays.add(4);
+      if (response['friday_enabled'] == true) workingDays.add(5);
+      if (response['saturday_enabled'] == true) workingDays.add(6);
+      if (response['sunday_enabled'] == true) workingDays.add(7);
+      
+      return workingDays;
+    } catch (e) {
+      print('Error getting working weekdays: $e');
+      // On error, return all days to not block the UI
+      return [1, 2, 3, 4, 5, 6, 7];
+    }
+  }
 
   /// Check if a chef is available for a specific booking
   Future<AvailabilityCheckResult> checkAvailability({
@@ -26,48 +57,65 @@ class ChefAvailabilityService {
       
       final endDateTime = bookingDateTime.add(Duration(hours: durationHours));
       
+      print('🔍 Checking availability for chef $chefId on ${bookingDate.toIso8601String()} at ${startTime.hour}:${startTime.minute.toString().padLeft(2, '0')}');
+      print('   Day of week: ${bookingDateTime.weekday} (${_getDanishDayName(bookingDateTime.weekday)})');
+      
       // 1. Check chef schedule settings (buffer time, max bookings, min notice)
       final settingsCheck = await _checkScheduleSettings(chefId, bookingDateTime);
       if (!settingsCheck.isAvailable) {
+        print('❌ Schedule settings check failed: ${settingsCheck.message}');
         return settingsCheck;
       }
+      print('✅ Schedule settings check passed');
       
       // 2. Check standard working hours
       final workingHoursCheck = await _checkWorkingHours(chefId, bookingDateTime, endDateTime);
       if (!workingHoursCheck.isAvailable) {
+        print('❌ Working hours check failed: ${workingHoursCheck.message}');
         return workingHoursCheck;
       }
+      print('✅ Working hours check passed');
       
       // 3. Check specific availability overrides
       final availabilityCheck = await _checkSpecificAvailability(chefId, bookingDate, startTime, endDateTime);
       if (!availabilityCheck.isAvailable) {
+        print('❌ Specific availability check failed: ${availabilityCheck.message}');
         return availabilityCheck;
       }
+      print('✅ Specific availability check passed');
       
       // 4. Check time off periods
       final timeOffCheck = await _checkTimeOff(chefId, bookingDateTime);
       if (!timeOffCheck.isAvailable) {
+        print('❌ Time off check failed: ${timeOffCheck.message}');
         return timeOffCheck;
       }
+      print('✅ Time off check passed');
       
       // 5. Check existing bookings with buffer time
       final bookingsCheck = await _checkExistingBookings(chefId, bookingDateTime, endDateTime);
       if (!bookingsCheck.isAvailable) {
+        print('❌ Existing bookings check failed: ${bookingsCheck.message}');
         return bookingsCheck;
       }
+      print('✅ Existing bookings check passed');
       
       // 6. Check max bookings per day
       final maxBookingsCheck = await _checkMaxBookingsPerDay(chefId, bookingDate);
       if (!maxBookingsCheck.isAvailable) {
+        print('❌ Max bookings check failed: ${maxBookingsCheck.message}');
         return maxBookingsCheck;
       }
+      print('✅ Max bookings check passed');
       
+      print('✅ All availability checks passed - Chef is available!');
       return AvailabilityCheckResult(
         isAvailable: true,
         message: 'Chef er tilgængelig for denne booking',
       );
       
     } catch (e) {
+      print('❌ Availability check error: ${e.toString()}');
       return AvailabilityCheckResult(
         isAvailable: false,
         message: 'Kunne ikke kontrollere tilgængelighed: ${e.toString()}',
@@ -116,11 +164,14 @@ class ChefAvailabilityService {
     
     if (response == null) {
       // No working hours set, assume available
+      print('   ⚠️ No working hours found for chef - assuming available');
       return AvailabilityCheckResult(isAvailable: true);
     }
     
     // Get the day of week
     final dayName = _getDayName(startDateTime.weekday);
+    print('   📅 Checking ${dayName} (weekday ${startDateTime.weekday})');
+    print('   📋 Working hours data: ${dayName}_enabled = ${response['${dayName}_enabled']}');
     
     final isEnabled = response['${dayName}_enabled'] as bool? ?? false;
     if (!isEnabled) {
@@ -263,19 +314,24 @@ class ChefAvailabilityService {
         .maybeSingle();
     
     final bufferMinutes = settingsResponse?['buffer_time'] as int? ?? 60;
+    print('   ⏰ Buffer time: $bufferMinutes minutes');
     
     // Add buffer to booking times
     final bufferedStart = bookingStart.subtract(Duration(minutes: bufferMinutes));
     final bufferedEnd = bookingEnd.add(Duration(minutes: bufferMinutes));
+    print('   📍 Requested: ${bookingStart.hour}:${bookingStart.minute.toString().padLeft(2, '0')} - ${bookingEnd.hour}:${bookingEnd.minute.toString().padLeft(2, '0')}');
+    print('   🔄 With buffer: ${bufferedStart.hour}:${bufferedStart.minute.toString().padLeft(2, '0')} - ${bufferedEnd.hour}:${bufferedEnd.minute.toString().padLeft(2, '0')}');
     
     // Check for conflicting bookings
     final date = bookingStart.toIso8601String().split('T')[0];
     final existingBookings = await _supabaseClient
         .from('bookings')
-        .select('start_time, end_time')
+        .select('start_time, end_time, status')
         .eq('chef_id', chefId)
         .eq('date', date)
         .inFilter('status', ['pending', 'confirmed', 'in_progress']);
+    
+    print('   📚 Found ${existingBookings.length} existing bookings on $date');
     
     for (final booking in existingBookings) {
       final startTimeStr = booking['start_time'] as String;
@@ -301,12 +357,16 @@ class ChefAvailabilityService {
       );
       
       // Check for overlap with buffer
+      print('      📌 Existing booking: ${existingStart.hour}:${existingStart.minute.toString().padLeft(2, '0')} - ${existingEnd.hour}:${existingEnd.minute.toString().padLeft(2, '0')} (${booking['status']})');
+      
       if (bufferedStart.isBefore(existingEnd) && bufferedEnd.isAfter(existingStart)) {
+        print('      ❌ CONFLICT DETECTED! Overlaps with existing booking');
         return AvailabilityCheckResult(
           isAvailable: false,
           message: 'Kokken har allerede en booking på dette tidspunkt (inklusive buffer tid)',
         );
       }
+      print('      ✅ No conflict with this booking');
     }
     
     // NEW: Also check for active payment reservations

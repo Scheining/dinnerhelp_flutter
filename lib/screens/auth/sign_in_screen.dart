@@ -75,13 +75,15 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                         width: 100,
                         height: 100,
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.primaryContainer,
                           shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.restaurant_menu,
-                          size: 50,
-                          color: theme.colorScheme.primary,
+                          image: DecorationImage(
+                            image: AssetImage(
+                              theme.brightness == Brightness.dark
+                                  ? 'assets/images/round_logo_dark_500x500.png'
+                                  : 'assets/images/round_logo_500x500.png',
+                            ),
+                            fit: BoxFit.cover,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 24),

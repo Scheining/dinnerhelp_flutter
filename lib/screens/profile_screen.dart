@@ -6,6 +6,7 @@ import 'package:homechef/providers/auth_provider.dart';
 import 'package:homechef/screens/favorite_chefs_screen.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -297,6 +298,37 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
                 
                 const SizedBox(height: 32),
+                
+                // Debug: Reset Onboarding (can be removed in production)
+                if (const bool.fromEnvironment('dart.vm.product') == false)
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: () async {
+                        final prefs = await SharedPreferences.getInstance();
+                        await prefs.setBool('onboarding_complete', false);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Onboarding nulstillet. Log ud og ind igen for at se det.'),
+                            ),
+                          );
+                        }
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.orange,
+                        side: const BorderSide(color: Colors.orange),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        backgroundColor: theme.brightness == Brightness.dark 
+                            ? const Color(0xFF252325)
+                            : Colors.transparent,
+                      ),
+                      child: const Text('Nulstil Onboarding (Debug)'),
+                    ),
+                  ),
+                
+                if (const bool.fromEnvironment('dart.vm.product') == false)
+                  const SizedBox(height: 16),
                 
                 // Logout Button
                 SizedBox(
