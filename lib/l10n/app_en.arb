@@ -491,5 +491,186 @@
         "type": "int"
       }
     }
+  },
+  
+  "paymentMethods": "Payment Methods",
+  "@paymentMethods": {
+    "description": "Payment methods page title"
+  },
+  
+  "savedCards": "Saved Cards",
+  "@savedCards": {
+    "description": "Saved cards section title"
+  },
+  
+  "noPaymentMethods": "No Payment Methods",
+  "@noPaymentMethods": {
+    "description": "Empty state for payment methods"
+  },
+  
+  "addCard": "Add Card",
+  "@addCard": {
+    "description": "Add card button"
+  },
+  
+  "adding": "Adding...",
+  "@adding": {
+    "description": "Adding card loading state"
+  },
+  
+  "removeCard": "Remove Card",
+  "@removeCard": {
+    "description": "Remove card dialog title"
+  },
+  
+  "cardRemoved": "Card removed",
+  "@cardRemoved": {
+    "description": "Card removed message"
+  },
+  
+  "cardRemovedSuccessfully": "Card removed successfully",
+  "@cardRemovedSuccessfully": {
+    "description": "Card removed success message"
+  },
+  
+  "defaultCard": "Default",
+  "@defaultCard": {
+    "description": "Default card label"
+  },
+  
+  "expires": "Expires",
+  "@expires": {
+    "description": "Card expiry label"
+  },
+  
+  "setAsDefault": "Set as default",
+  "@setAsDefault": {
+    "description": "Set as default card tooltip"
+  },
+  
+  "defaultPaymentMethodUpdated": "Default payment method updated",
+  "@defaultPaymentMethodUpdated": {
+    "description": "Default payment method updated message"
+  },
+  
+  "areYouSureRemoveCard": "Are you sure you want to remove the card ending in {last4}?",
+  "@areYouSureRemoveCard": {
+    "description": "Remove card confirmation message",
+    "placeholders": {
+      "last4": {
+        "type": "String",
+        "example": "4242"
+      }
+    }
+  },
+  
+  "failedToRemoveCard": "Failed to remove card: {message}",
+  "@failedToRemoveCard": {
+    "description": "Failed to remove card error",
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  
+  "failedToSetDefault": "Failed to set default: {message}",
+  "@failedToSetDefault": {
+    "description": "Failed to set default error",
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  
+  "cardAddedSuccessfully": "Card added successfully",
+  "@cardAddedSuccessfully": {
+    "description": "Card added success message"
+  },
+  
+  "paymentSetupFailed": "Payment setup failed",
+  "@paymentSetupFailed": {
+    "description": "Payment setup failed message"
+  },
+  
+  "cardNickname": "Card Nickname (Optional)",
+  "@cardNickname": {
+    "description": "Card nickname dialog title"
+  },
+  
+  "giveCardNickname": "Give this card a nickname to easily identify it",
+  "@giveCardNickname": {
+    "description": "Card nickname explanation"
+  },
+  
+  "skip": "Skip",
+  "@skip": {
+    "description": "Skip button"
+  },
+  
+  "save": "Save",
+  "@save": {
+    "description": "Save button"
+  },
+  
+  "cancel": "Cancel",
+  "@cancel": {
+    "description": "Cancel button"
+  },
+  
+  "remove": "Remove",
+  "@remove": {
+    "description": "Remove button"
+  },
+  
+  "yourPaymentInfoSecure": "Your payment information is encrypted and secure",
+  "@yourPaymentInfoSecure": {
+    "description": "Payment security message"
+  },
+  
+  "addCardToMakeBookingFaster": "Add a card to make booking faster and easier",
+  "@addCardToMakeBookingFaster": {
+    "description": "Add card prompt message"
+  },
+  
+  "cardsSaved": "{count, plural, =0{No cards saved} =1{1 card saved} other{{count} cards saved}}",
+  "@cardsSaved": {
+    "description": "Cards saved count",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  
+  "errorLoadingPaymentMethods": "Error loading payment methods: {error}",
+  "@errorLoadingPaymentMethods": {
+    "description": "Error loading payment methods",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  
+  "retry": "Retry",
+  "@retry": {
+    "description": "Retry button"
+  },
+  
+  "personalCard": "Personal Card",
+  "@personalCard": {
+    "description": "Personal card placeholder nickname"
+  },
+  
+  "workCard": "Work Card",
+  "@workCard": {
+    "description": "Work card placeholder nickname"
+  },
+  
+  "expiringCard": "Expiring Soon",
+  "@expiringCard": {
+    "description": "Label for cards expiring soon"
   }
 }

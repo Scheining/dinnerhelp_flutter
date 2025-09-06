@@ -31,6 +31,7 @@ import 'package:homechef/features/booking/presentation/screens/booking_managemen
 // Payment screens
 import 'package:homechef/features/payment/presentation/screens/payment_processing_screen.dart';
 import 'package:homechef/features/payment/presentation/screens/payment_history_screen.dart';
+import 'package:homechef/features/payment/presentation/screens/payment_methods_screen.dart';
 
 // Notification screens
 import 'package:homechef/features/notifications/presentation/pages/notification_preferences_page.dart';
@@ -188,11 +189,17 @@ final routerProvider = Provider<GoRouter>((ref) {
                   userId: 'current-user-id', // TODO: Get from auth provider
                 ),
               ),
-              // Payment history
+              // Payment methods (new primary route)
+              GoRoute(
+                path: 'payment-methods',
+                name: 'payment-methods',
+                builder: (context, state) => const PaymentMethodsScreen(),
+              ),
+              // Payment history (kept for transaction history, redirects to payment methods)
               GoRoute(
                 path: 'payment-history',
                 name: 'payment-history',
-                builder: (context, state) => const PaymentHistoryScreen(),
+                redirect: (context, state) => '/profile/payment-methods',
               ),
             ],
           ),

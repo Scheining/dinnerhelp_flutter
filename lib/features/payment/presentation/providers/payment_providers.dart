@@ -1,6 +1,8 @@
+import 'package:dartz/dartz.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:get_it/get_it.dart';
+import '../../../../core/error/failures.dart';
 import '../../domain/entities/payment_intent.dart';
 import '../../domain/entities/payment_method.dart';
 import '../../domain/entities/refund.dart';
@@ -16,6 +18,11 @@ import '../../domain/usecases/refund_payment.dart';
 import '../../domain/usecases/calculate_payment_amount.dart';
 import '../../domain/usecases/get_payment_status.dart';
 import '../../domain/usecases/get_disputes.dart';
+import '../../domain/usecases/create_setup_intent.dart';
+import '../../domain/usecases/get_saved_payment_methods.dart';
+import '../../domain/usecases/save_payment_method.dart';
+import '../../domain/usecases/delete_payment_method.dart';
+import '../../domain/usecases/set_default_payment_method.dart';
 import '../../data/repositories/payment_repository_impl.dart';
 
 part 'payment_providers.g.dart';
@@ -78,9 +85,7 @@ Future<List<PaymentMethod>> paymentMethods(PaymentMethodsRef ref) async {
   final user = Supabase.instance.client.auth.currentUser;
   if (user == null) return [];
 
-  final result = await ref.read(paymentRepositoryProvider).getPaymentMethods(
-        userId: user.id,
-      );
+  final result = await ref.read(paymentRepositoryProvider).getSavedPaymentMethods();
 
   return result.fold(
     (failure) => throw Exception(failure.message),
@@ -239,4 +244,90 @@ class PaymentFlowPaymentCaptured extends PaymentFlowState {
 class PaymentFlowError extends PaymentFlowState {
   final String message;
   const PaymentFlowError(this.message);
+}
+
+// Payment Method Management Providers
+
+@riverpod
+Future<List<PaymentMethod>> savedPaymentMethods(SavedPaymentMethodsRef ref) async {
+  final repository = ref.read(paymentRepositoryProvider);
+  final result = await repository.getSavedPaymentMethods();
+  
+  return result.fold(
+    (failure) => throw Exception(failure.message),
+    (methods) => methods,
+  );
+}
+
+@riverpod
+Future<SetupIntentResponse> createSetupIntent(CreateSetupIntentRef ref) async {
+  final repository = ref.read(paymentRepositoryProvider);
+  final result = await repository.createSetupIntent();
+  
+  return result.fold(
+    (failure) => throw Exception(failure.message),
+    (response) => response,
+  );
+}
+
+@riverpod
+Future<PaymentMethod> savePaymentMethod(
+  SavePaymentMethodRef ref, {
+  required String setupIntentId,
+  String? nickname,
+}) async {
+  final repository = ref.read(paymentRepositoryProvider);
+  final result = await repository.savePaymentMethod(
+    setupIntentId: setupIntentId,
+    nickname: nickname,
+  );
+  
+  return result.fold(
+    (failure) => throw Exception(failure.message),
+    (method) => method,
+  );
+}
+
+@riverpod
+Future<Either<Failure, void>> deletePaymentMethod(
+  DeletePaymentMethodRef ref,
+  String paymentMethodId,
+) async {
+  final repository = ref.read(paymentRepositoryProvider);
+  return await repository.deletePaymentMethod(paymentMethodId);
+}
+
+@riverpod
+Future<Either<Failure, PaymentMethod>> setDefaultPaymentMethod(
+  SetDefaultPaymentMethodRef ref,
+  String paymentMethodId,
+) async {
+  final repository = ref.read(paymentRepositoryProvider);
+  return await repository.setDefaultPaymentMethod(paymentMethodId);
+}
+
+// Use case providers for payment methods
+@riverpod
+GetSavedPaymentMethods getSavedPaymentMethodsUseCase(GetSavedPaymentMethodsUseCaseRef ref) {
+  return GetSavedPaymentMethods(ref.read(paymentRepositoryProvider));
+}
+
+@riverpod
+CreateSetupIntent createSetupIntentUseCase(CreateSetupIntentUseCaseRef ref) {
+  return CreateSetupIntent(ref.read(paymentRepositoryProvider));
+}
+
+@riverpod
+SavePaymentMethod savePaymentMethodUseCase(SavePaymentMethodUseCaseRef ref) {
+  return SavePaymentMethod(ref.read(paymentRepositoryProvider));
+}
+
+@riverpod
+DeletePaymentMethod deletePaymentMethodUseCase(DeletePaymentMethodUseCaseRef ref) {
+  return DeletePaymentMethod(ref.read(paymentRepositoryProvider));
+}
+
+@riverpod
+SetDefaultPaymentMethod setDefaultPaymentMethodUseCase(SetDefaultPaymentMethodUseCaseRef ref) {
+  return SetDefaultPaymentMethod(ref.read(paymentRepositoryProvider));
 }

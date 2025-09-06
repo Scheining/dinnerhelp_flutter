@@ -175,7 +175,7 @@ final getDisputesUseCaseProvider = AutoDisposeProvider<GetDisputes>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef GetDisputesUseCaseRef = AutoDisposeProviderRef<GetDisputes>;
-String _$paymentMethodsHash() => r'c3bf58b1f48a6c17f0b7a01d677ac89ceb0c9649';
+String _$paymentMethodsHash() => r'da3463b8fcd00561e9dde1dcc9a7c5c89a60330e';
 
 /// See also [paymentMethods].
 @ProviderFor(paymentMethods)
@@ -657,6 +657,571 @@ class _CalculatePaymentProviderElement
       (origin as CalculatePaymentProvider).chefNewYearEveExtraCharge;
 }
 
+String _$savedPaymentMethodsHash() =>
+    r'fab29d8c0d2f4787103b98d84dd507cf89baa867';
+
+/// See also [savedPaymentMethods].
+@ProviderFor(savedPaymentMethods)
+final savedPaymentMethodsProvider =
+    AutoDisposeFutureProvider<List<PaymentMethod>>.internal(
+  savedPaymentMethods,
+  name: r'savedPaymentMethodsProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$savedPaymentMethodsHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef SavedPaymentMethodsRef
+    = AutoDisposeFutureProviderRef<List<PaymentMethod>>;
+String _$createSetupIntentHash() => r'abff3e922aeaca72ed1788005dcbca6eb982e828';
+
+/// See also [createSetupIntent].
+@ProviderFor(createSetupIntent)
+final createSetupIntentProvider =
+    AutoDisposeFutureProvider<SetupIntentResponse>.internal(
+  createSetupIntent,
+  name: r'createSetupIntentProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$createSetupIntentHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef CreateSetupIntentRef
+    = AutoDisposeFutureProviderRef<SetupIntentResponse>;
+String _$savePaymentMethodHash() => r'29b2d0f19c67308dab28cc0bf8220ad6cc6ba894';
+
+/// See also [savePaymentMethod].
+@ProviderFor(savePaymentMethod)
+const savePaymentMethodProvider = SavePaymentMethodFamily();
+
+/// See also [savePaymentMethod].
+class SavePaymentMethodFamily extends Family<AsyncValue<PaymentMethod>> {
+  /// See also [savePaymentMethod].
+  const SavePaymentMethodFamily();
+
+  /// See also [savePaymentMethod].
+  SavePaymentMethodProvider call({
+    required String setupIntentId,
+    String? nickname,
+  }) {
+    return SavePaymentMethodProvider(
+      setupIntentId: setupIntentId,
+      nickname: nickname,
+    );
+  }
+
+  @override
+  SavePaymentMethodProvider getProviderOverride(
+    covariant SavePaymentMethodProvider provider,
+  ) {
+    return call(
+      setupIntentId: provider.setupIntentId,
+      nickname: provider.nickname,
+    );
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'savePaymentMethodProvider';
+}
+
+/// See also [savePaymentMethod].
+class SavePaymentMethodProvider
+    extends AutoDisposeFutureProvider<PaymentMethod> {
+  /// See also [savePaymentMethod].
+  SavePaymentMethodProvider({
+    required String setupIntentId,
+    String? nickname,
+  }) : this._internal(
+          (ref) => savePaymentMethod(
+            ref as SavePaymentMethodRef,
+            setupIntentId: setupIntentId,
+            nickname: nickname,
+          ),
+          from: savePaymentMethodProvider,
+          name: r'savePaymentMethodProvider',
+          debugGetCreateSourceHash:
+              const bool.fromEnvironment('dart.vm.product')
+                  ? null
+                  : _$savePaymentMethodHash,
+          dependencies: SavePaymentMethodFamily._dependencies,
+          allTransitiveDependencies:
+              SavePaymentMethodFamily._allTransitiveDependencies,
+          setupIntentId: setupIntentId,
+          nickname: nickname,
+        );
+
+  SavePaymentMethodProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.setupIntentId,
+    required this.nickname,
+  }) : super.internal();
+
+  final String setupIntentId;
+  final String? nickname;
+
+  @override
+  Override overrideWith(
+    FutureOr<PaymentMethod> Function(SavePaymentMethodRef provider) create,
+  ) {
+    return ProviderOverride(
+      origin: this,
+      override: SavePaymentMethodProvider._internal(
+        (ref) => create(ref as SavePaymentMethodRef),
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        setupIntentId: setupIntentId,
+        nickname: nickname,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeFutureProviderElement<PaymentMethod> createElement() {
+    return _SavePaymentMethodProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is SavePaymentMethodProvider &&
+        other.setupIntentId == setupIntentId &&
+        other.nickname == nickname;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, setupIntentId.hashCode);
+    hash = _SystemHash.combine(hash, nickname.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+mixin SavePaymentMethodRef on AutoDisposeFutureProviderRef<PaymentMethod> {
+  /// The parameter `setupIntentId` of this provider.
+  String get setupIntentId;
+
+  /// The parameter `nickname` of this provider.
+  String? get nickname;
+}
+
+class _SavePaymentMethodProviderElement
+    extends AutoDisposeFutureProviderElement<PaymentMethod>
+    with SavePaymentMethodRef {
+  _SavePaymentMethodProviderElement(super.provider);
+
+  @override
+  String get setupIntentId =>
+      (origin as SavePaymentMethodProvider).setupIntentId;
+  @override
+  String? get nickname => (origin as SavePaymentMethodProvider).nickname;
+}
+
+String _$deletePaymentMethodHash() =>
+    r'1c7360532ff1ec5288f042ea3861f1aab056ae9f';
+
+/// See also [deletePaymentMethod].
+@ProviderFor(deletePaymentMethod)
+const deletePaymentMethodProvider = DeletePaymentMethodFamily();
+
+/// See also [deletePaymentMethod].
+class DeletePaymentMethodFamily
+    extends Family<AsyncValue<Either<Failure, void>>> {
+  /// See also [deletePaymentMethod].
+  const DeletePaymentMethodFamily();
+
+  /// See also [deletePaymentMethod].
+  DeletePaymentMethodProvider call(
+    String paymentMethodId,
+  ) {
+    return DeletePaymentMethodProvider(
+      paymentMethodId,
+    );
+  }
+
+  @override
+  DeletePaymentMethodProvider getProviderOverride(
+    covariant DeletePaymentMethodProvider provider,
+  ) {
+    return call(
+      provider.paymentMethodId,
+    );
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'deletePaymentMethodProvider';
+}
+
+/// See also [deletePaymentMethod].
+class DeletePaymentMethodProvider
+    extends AutoDisposeFutureProvider<Either<Failure, void>> {
+  /// See also [deletePaymentMethod].
+  DeletePaymentMethodProvider(
+    String paymentMethodId,
+  ) : this._internal(
+          (ref) => deletePaymentMethod(
+            ref as DeletePaymentMethodRef,
+            paymentMethodId,
+          ),
+          from: deletePaymentMethodProvider,
+          name: r'deletePaymentMethodProvider',
+          debugGetCreateSourceHash:
+              const bool.fromEnvironment('dart.vm.product')
+                  ? null
+                  : _$deletePaymentMethodHash,
+          dependencies: DeletePaymentMethodFamily._dependencies,
+          allTransitiveDependencies:
+              DeletePaymentMethodFamily._allTransitiveDependencies,
+          paymentMethodId: paymentMethodId,
+        );
+
+  DeletePaymentMethodProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.paymentMethodId,
+  }) : super.internal();
+
+  final String paymentMethodId;
+
+  @override
+  Override overrideWith(
+    FutureOr<Either<Failure, void>> Function(DeletePaymentMethodRef provider)
+        create,
+  ) {
+    return ProviderOverride(
+      origin: this,
+      override: DeletePaymentMethodProvider._internal(
+        (ref) => create(ref as DeletePaymentMethodRef),
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        paymentMethodId: paymentMethodId,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeFutureProviderElement<Either<Failure, void>> createElement() {
+    return _DeletePaymentMethodProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is DeletePaymentMethodProvider &&
+        other.paymentMethodId == paymentMethodId;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, paymentMethodId.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+mixin DeletePaymentMethodRef
+    on AutoDisposeFutureProviderRef<Either<Failure, void>> {
+  /// The parameter `paymentMethodId` of this provider.
+  String get paymentMethodId;
+}
+
+class _DeletePaymentMethodProviderElement
+    extends AutoDisposeFutureProviderElement<Either<Failure, void>>
+    with DeletePaymentMethodRef {
+  _DeletePaymentMethodProviderElement(super.provider);
+
+  @override
+  String get paymentMethodId =>
+      (origin as DeletePaymentMethodProvider).paymentMethodId;
+}
+
+String _$setDefaultPaymentMethodHash() =>
+    r'5ea45b1b9e367b70380d44218b47eda5e8f36fec';
+
+/// See also [setDefaultPaymentMethod].
+@ProviderFor(setDefaultPaymentMethod)
+const setDefaultPaymentMethodProvider = SetDefaultPaymentMethodFamily();
+
+/// See also [setDefaultPaymentMethod].
+class SetDefaultPaymentMethodFamily
+    extends Family<AsyncValue<Either<Failure, PaymentMethod>>> {
+  /// See also [setDefaultPaymentMethod].
+  const SetDefaultPaymentMethodFamily();
+
+  /// See also [setDefaultPaymentMethod].
+  SetDefaultPaymentMethodProvider call(
+    String paymentMethodId,
+  ) {
+    return SetDefaultPaymentMethodProvider(
+      paymentMethodId,
+    );
+  }
+
+  @override
+  SetDefaultPaymentMethodProvider getProviderOverride(
+    covariant SetDefaultPaymentMethodProvider provider,
+  ) {
+    return call(
+      provider.paymentMethodId,
+    );
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'setDefaultPaymentMethodProvider';
+}
+
+/// See also [setDefaultPaymentMethod].
+class SetDefaultPaymentMethodProvider
+    extends AutoDisposeFutureProvider<Either<Failure, PaymentMethod>> {
+  /// See also [setDefaultPaymentMethod].
+  SetDefaultPaymentMethodProvider(
+    String paymentMethodId,
+  ) : this._internal(
+          (ref) => setDefaultPaymentMethod(
+            ref as SetDefaultPaymentMethodRef,
+            paymentMethodId,
+          ),
+          from: setDefaultPaymentMethodProvider,
+          name: r'setDefaultPaymentMethodProvider',
+          debugGetCreateSourceHash:
+              const bool.fromEnvironment('dart.vm.product')
+                  ? null
+                  : _$setDefaultPaymentMethodHash,
+          dependencies: SetDefaultPaymentMethodFamily._dependencies,
+          allTransitiveDependencies:
+              SetDefaultPaymentMethodFamily._allTransitiveDependencies,
+          paymentMethodId: paymentMethodId,
+        );
+
+  SetDefaultPaymentMethodProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.paymentMethodId,
+  }) : super.internal();
+
+  final String paymentMethodId;
+
+  @override
+  Override overrideWith(
+    FutureOr<Either<Failure, PaymentMethod>> Function(
+            SetDefaultPaymentMethodRef provider)
+        create,
+  ) {
+    return ProviderOverride(
+      origin: this,
+      override: SetDefaultPaymentMethodProvider._internal(
+        (ref) => create(ref as SetDefaultPaymentMethodRef),
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        paymentMethodId: paymentMethodId,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeFutureProviderElement<Either<Failure, PaymentMethod>>
+      createElement() {
+    return _SetDefaultPaymentMethodProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is SetDefaultPaymentMethodProvider &&
+        other.paymentMethodId == paymentMethodId;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, paymentMethodId.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+mixin SetDefaultPaymentMethodRef
+    on AutoDisposeFutureProviderRef<Either<Failure, PaymentMethod>> {
+  /// The parameter `paymentMethodId` of this provider.
+  String get paymentMethodId;
+}
+
+class _SetDefaultPaymentMethodProviderElement
+    extends AutoDisposeFutureProviderElement<Either<Failure, PaymentMethod>>
+    with SetDefaultPaymentMethodRef {
+  _SetDefaultPaymentMethodProviderElement(super.provider);
+
+  @override
+  String get paymentMethodId =>
+      (origin as SetDefaultPaymentMethodProvider).paymentMethodId;
+}
+
+String _$getSavedPaymentMethodsUseCaseHash() =>
+    r'bb0538539ec173b7f9f0ddf8cf16c7d95ebcb9cb';
+
+/// See also [getSavedPaymentMethodsUseCase].
+@ProviderFor(getSavedPaymentMethodsUseCase)
+final getSavedPaymentMethodsUseCaseProvider =
+    AutoDisposeProvider<GetSavedPaymentMethods>.internal(
+  getSavedPaymentMethodsUseCase,
+  name: r'getSavedPaymentMethodsUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$getSavedPaymentMethodsUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef GetSavedPaymentMethodsUseCaseRef
+    = AutoDisposeProviderRef<GetSavedPaymentMethods>;
+String _$createSetupIntentUseCaseHash() =>
+    r'8c7cb981741afc79ca9a009c8d937c449b16ec10';
+
+/// See also [createSetupIntentUseCase].
+@ProviderFor(createSetupIntentUseCase)
+final createSetupIntentUseCaseProvider =
+    AutoDisposeProvider<CreateSetupIntent>.internal(
+  createSetupIntentUseCase,
+  name: r'createSetupIntentUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$createSetupIntentUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef CreateSetupIntentUseCaseRef = AutoDisposeProviderRef<CreateSetupIntent>;
+String _$savePaymentMethodUseCaseHash() =>
+    r'21b164994452532a718d94eb679ab94588533620';
+
+/// See also [savePaymentMethodUseCase].
+@ProviderFor(savePaymentMethodUseCase)
+final savePaymentMethodUseCaseProvider =
+    AutoDisposeProvider<SavePaymentMethod>.internal(
+  savePaymentMethodUseCase,
+  name: r'savePaymentMethodUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$savePaymentMethodUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef SavePaymentMethodUseCaseRef = AutoDisposeProviderRef<SavePaymentMethod>;
+String _$deletePaymentMethodUseCaseHash() =>
+    r'c31d3c461409f7ed0f08b73b0a6af4ad523a4ae9';
+
+/// See also [deletePaymentMethodUseCase].
+@ProviderFor(deletePaymentMethodUseCase)
+final deletePaymentMethodUseCaseProvider =
+    AutoDisposeProvider<DeletePaymentMethod>.internal(
+  deletePaymentMethodUseCase,
+  name: r'deletePaymentMethodUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$deletePaymentMethodUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef DeletePaymentMethodUseCaseRef
+    = AutoDisposeProviderRef<DeletePaymentMethod>;
+String _$setDefaultPaymentMethodUseCaseHash() =>
+    r'ae806ded778e1182d5fc7583832720a9cb53e61a';
+
+/// See also [setDefaultPaymentMethodUseCase].
+@ProviderFor(setDefaultPaymentMethodUseCase)
+final setDefaultPaymentMethodUseCaseProvider =
+    AutoDisposeProvider<SetDefaultPaymentMethod>.internal(
+  setDefaultPaymentMethodUseCase,
+  name: r'setDefaultPaymentMethodUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$setDefaultPaymentMethodUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef SetDefaultPaymentMethodUseCaseRef
+    = AutoDisposeProviderRef<SetDefaultPaymentMethod>;
 String _$paymentFlowHash() => r'5ce184d52942f2ab25428a58d2b89f330223e6c9';
 
 /// See also [PaymentFlow].

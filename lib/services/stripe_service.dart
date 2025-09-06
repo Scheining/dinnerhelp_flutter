@@ -109,6 +109,7 @@ class StripeService {
           merchantDisplayName: merchantDisplayName,
           customerEphemeralKeySecret: null,
           style: ThemeMode.system,
+          primaryButtonLabel: 'Betal', // Danish for "Pay"
           appearance: PaymentSheetAppearance(
             colors: PaymentSheetAppearanceColors(
               primary: const Color(0xFF79CBC2),
@@ -176,25 +177,167 @@ class StripeService {
     }
   }
   
-  /// Create setup intent for saving cards
-  Future<String?> createSetupIntent({
-    required String customerId,
-  }) async {
+  /// Create setup intent for saving cards (no customer ID needed, handled server-side)
+  Future<Map<String, dynamic>?> createSetupIntent() async {
     try {
       final response = await _supabaseClient.functions.invoke(
         'create-setup-intent',
-        body: {
-          'customer_id': customerId,
-        },
       );
       
       if (response.data != null && response.data['client_secret'] != null) {
-        return response.data['client_secret'];
+        return {
+          'client_secret': response.data['client_secret'],
+          'customer_id': response.data['customer_id'],
+          'setup_intent_id': response.data['setup_intent_id'],
+        };
       }
       return null;
     } catch (e) {
       debugPrint('Error creating setup intent: $e');
       return null;
+    }
+  }
+  
+  /// Initialize payment sheet for saving a card (SetupIntent)
+  Future<void> initSetupPaymentSheet({
+    required String clientSecret,
+    required String merchantDisplayName,
+    String? customerEmail,
+  }) async {
+    try {
+      await Stripe.instance.initPaymentSheet(
+        paymentSheetParameters: SetupPaymentSheetParameters(
+          setupIntentClientSecret: clientSecret,
+          merchantDisplayName: merchantDisplayName,
+          style: ThemeMode.system,
+          appearance: PaymentSheetAppearance(
+            colors: PaymentSheetAppearanceColors(
+              primary: const Color(0xFF79CBC2),
+            ),
+            shapes: const PaymentSheetShape(
+              borderRadius: 12.0,
+              shadow: PaymentSheetShadowParams(
+                color: Colors.black12,
+                opacity: 0.1,
+              ),
+            ),
+            primaryButton: const PaymentSheetPrimaryButtonAppearance(
+              colors: PaymentSheetPrimaryButtonTheme(
+                light: PaymentSheetPrimaryButtonThemeColors(
+                  background: Color(0xFF79CBC2),
+                  text: Colors.white,
+                  border: Color(0xFF79CBC2),
+                ),
+                dark: PaymentSheetPrimaryButtonThemeColors(
+                  background: Color(0xFF79CBC2),
+                  text: Colors.white,
+                  border: Color(0xFF79CBC2),
+                ),
+              ),
+            ),
+          ),
+          googlePay: const PaymentSheetGooglePay(
+            merchantCountryCode: 'DK',
+            currencyCode: 'DKK',
+            testEnv: true,
+          ),
+          applePay: const PaymentSheetApplePay(
+            merchantCountryCode: 'DK',
+          ),
+          billingDetails: customerEmail != null 
+            ? BillingDetails(
+                email: customerEmail,
+              )
+            : null,
+          billingDetailsCollectionConfiguration: const BillingDetailsCollectionConfiguration(
+            name: CollectionMode.automatic,
+            email: CollectionMode.automatic,
+            phone: CollectionMode.never,
+            address: AddressCollectionMode.never,
+          ),
+          primaryButtonLabel: 'Gem kort', // Danish for "Save card"
+          returnURL: 'dinnerhelp://stripe-redirect',
+        ),
+      );
+    } catch (e) {
+      debugPrint('Error initializing setup payment sheet: $e');
+      rethrow;
+    }
+  }
+  
+  /// Save payment method after successful SetupIntent
+  Future<bool> savePaymentMethod({
+    required String setupIntentId,
+    String? nickname,
+  }) async {
+    try {
+      final response = await _supabaseClient.functions.invoke(
+        'save-payment-method',
+        body: {
+          'setup_intent_id': setupIntentId,
+          if (nickname != null) 'nickname': nickname,
+        },
+      );
+      
+      return response.data != null && response.data['success'] == true;
+    } catch (e) {
+      debugPrint('Error saving payment method: $e');
+      return false;
+    }
+  }
+  
+  /// Get saved payment methods for current user
+  Future<List<Map<String, dynamic>>> getSavedPaymentMethods() async {
+    try {
+      final response = await _supabaseClient.functions.invoke(
+        'list-payment-methods',
+      );
+      
+      if (response.data != null && response.data['payment_methods'] != null) {
+        return List<Map<String, dynamic>>.from(response.data['payment_methods']);
+      }
+      return [];
+    } catch (e) {
+      debugPrint('Error getting saved payment methods: $e');
+      return [];
+    }
+  }
+  
+  /// Delete a saved payment method
+  Future<bool> deletePaymentMethod({
+    required String paymentMethodId,
+  }) async {
+    try {
+      final response = await _supabaseClient.functions.invoke(
+        'delete-payment-method',
+        body: {
+          'payment_method_id': paymentMethodId,
+        },
+      );
+      
+      return response.data != null && response.data['success'] == true;
+    } catch (e) {
+      debugPrint('Error deleting payment method: $e');
+      return false;
+    }
+  }
+  
+  /// Set a payment method as default
+  Future<bool> setDefaultPaymentMethod({
+    required String paymentMethodId,
+  }) async {
+    try {
+      final response = await _supabaseClient.functions.invoke(
+        'set-default-payment-method',
+        body: {
+          'payment_method_id': paymentMethodId,
+        },
+      );
+      
+      return response.data != null && response.data['success'] == true;
+    } catch (e) {
+      debugPrint('Error setting default payment method: $e');
+      return false;
     }
   }
   

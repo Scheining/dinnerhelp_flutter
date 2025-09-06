@@ -6,6 +6,7 @@ import '../../domain/entities/payment_method.dart';
 import '../../domain/entities/refund.dart';
 import '../../domain/entities/dispute.dart';
 import '../../domain/repositories/payment_repository.dart';
+import '../../domain/usecases/create_setup_intent.dart';
 import '../models/payment_intent_model.dart';
 import '../models/payment_method_model.dart';
 import '../models/refund_model.dart';
@@ -233,23 +234,47 @@ class PaymentRepositoryImpl implements PaymentRepository {
   }
 
   @override
-  Future<Either<Failure, List<PaymentMethod>>> getPaymentMethods({
-    required String userId,
-  }) async {
+  Future<Either<Failure, List<PaymentMethod>>> getSavedPaymentMethods() async {
     try {
-      final response = await _supabaseClient
-          .from('payment_methods')
-          .select()
-          .eq('user_id', userId)
-          .order('is_default', ascending: false);
+      final response = await _supabaseClient.functions.invoke(
+        'list-payment-methods',
+      );
 
-      final paymentMethods = response
+      if (response.status != 200) {
+        return Left(PaymentFailure(
+          response.data?['error'] ?? 'Failed to get payment methods',
+        ));
+      }
+
+      final List<dynamic> methodsJson = response.data['payment_methods'] ?? [];
+      final paymentMethods = methodsJson
           .map((json) => PaymentMethodModel.fromJson(json).toDomain())
           .toList();
 
       return Right(paymentMethods);
-    } on PostgrestException catch (e) {
-      return Left(ServerFailure(e.message));
+    } catch (e) {
+      return Left(PaymentFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, SetupIntentResponse>> createSetupIntent() async {
+    try {
+      final response = await _supabaseClient.functions.invoke(
+        'create-setup-intent',
+      );
+
+      if (response.status != 200) {
+        return Left(PaymentFailure(
+          response.data?['error'] ?? 'Failed to create setup intent',
+        ));
+      }
+
+      return Right(SetupIntentResponse(
+        clientSecret: response.data['client_secret'],
+        customerId: response.data['customer_id'],
+        setupIntentId: response.data['setup_intent_id'],
+      ));
     } catch (e) {
       return Left(PaymentFailure(e.toString()));
     }
@@ -257,51 +282,71 @@ class PaymentRepositoryImpl implements PaymentRepository {
 
   @override
   Future<Either<Failure, PaymentMethod>> savePaymentMethod({
-    required String userId,
-    required String paymentMethodId,
-    required bool setAsDefault,
+    required String setupIntentId,
+    String? nickname,
   }) async {
     try {
-      // If setting as default, first unset other defaults
-      if (setAsDefault) {
-        await _supabaseClient
-            .from('payment_methods')
-            .update({'is_default': false})
-            .eq('user_id', userId);
+      final response = await _supabaseClient.functions.invoke(
+        'save-payment-method',
+        body: {
+          'setup_intent_id': setupIntentId,
+          if (nickname != null) 'nickname': nickname,
+        },
+      );
+
+      if (response.status != 200) {
+        return Left(PaymentFailure(
+          response.data?['error'] ?? 'Failed to save payment method',
+        ));
       }
 
-      final response = await _supabaseClient
-          .from('payment_methods')
-          .insert({
-            'user_id': userId,
-            'stripe_payment_method_id': paymentMethodId,
-            'is_default': setAsDefault,
-          })
-          .select()
-          .single();
-
-      final paymentMethodModel = PaymentMethodModel.fromJson(response);
+      final paymentMethodModel = PaymentMethodModel.fromJson(response.data['payment_method']);
       return Right(paymentMethodModel.toDomain());
-    } on PostgrestException catch (e) {
-      return Left(ServerFailure(e.message));
     } catch (e) {
       return Left(PaymentFailure(e.toString()));
     }
   }
 
   @override
-  Future<Either<Failure, void>> deletePaymentMethod({
-    required String paymentMethodId,
-  }) async {
+  Future<Either<Failure, void>> deletePaymentMethod(String paymentMethodId) async {
     try {
-      await _supabaseClient
-          .from('payment_methods')
-          .delete()
-          .eq('stripe_payment_method_id', paymentMethodId);
+      final response = await _supabaseClient.functions.invoke(
+        'delete-payment-method',
+        body: {
+          'payment_method_id': paymentMethodId,
+        },
+      );
+
+      if (response.status != 200) {
+        return Left(PaymentFailure(
+          response.data?['error'] ?? 'Failed to delete payment method',
+        ));
+      }
 
       return const Right(null);
-    } on PostgrestException catch (e) {
-      return Left(ServerFailure(e.message));
+    } catch (e) {
+      return Left(PaymentFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, PaymentMethod>> setDefaultPaymentMethod(String paymentMethodId) async {
+    try {
+      final response = await _supabaseClient.functions.invoke(
+        'set-default-payment-method',
+        body: {
+          'payment_method_id': paymentMethodId,
+        },
+      );
+
+      if (response.status != 200) {
+        return Left(PaymentFailure(
+          response.data?['error'] ?? 'Failed to set default payment method',
+        ));
+      }
+
+      final paymentMethodModel = PaymentMethodModel.fromJson(response.data['payment_method']);
+      return Right(paymentMethodModel.toDomain());
     } catch (e) {
       return Left(PaymentFailure(e.toString()));
     }

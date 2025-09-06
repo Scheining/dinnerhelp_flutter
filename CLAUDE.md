@@ -282,6 +282,8 @@ class UserPage extends HookConsumerWidget {
 - supabase_flutter
 - flutter_hooks
 - cached_network_image
+- flutter_stripe (payment processing)
+- payment_card (enhanced card UI visualization)
 
 ## Supabase Integration Guidelines
 
@@ -562,6 +564,101 @@ Future<String> uploadChefImage(File image, String chefId) async {
 - bookings.chef_id → chefs.id
 - chat_messages → bookings (via booking_id)
 - notifications → users, chefs, bookings
+
+## Payment System Implementation
+
+### Overview
+The payment system uses Stripe for processing payments and the `payment_card` package for enhanced card visualization. The system supports saving payment methods, displaying them with brand-specific designs, and processing payments for bookings.
+
+### Payment Card UI Components
+
+#### PaymentMethodCard Widget
+Location: `/lib/features/payment/presentation/widgets/payment_method_card.dart`
+
+The PaymentMethodCard uses the `payment_card` package (v0.0.1) to display saved payment methods with:
+- **Centered card layout**: Cards are displayed in a 250px height container with centered alignment
+- **Brand-specific styling**: Automatic detection and styling based on card brand
+- **Overlay action buttons**: Delete and set-as-default buttons positioned over the card
+- **Status indicators**: Default badge and expiring soon warning
+
+#### Card Brand Detection
+Card brands are **automatically detected by Stripe** when users enter their card number. The brand information flows as:
+1. User enters card number in Stripe payment sheet
+2. Stripe identifies the card brand (Visa, Mastercard, Amex, etc.)
+3. Brand is stored with the payment method in Stripe
+4. Retrieved via `list-payment-methods` Edge Function
+5. Used to style the card display accordingly
+
+#### Visual Design System
+
+**Brand-to-Color Mapping:**
+```dart
+Visa:       #1A1F71 (dark blue) → #4B6EDB (light blue gradient)
+Mastercard: #EB001B (red) → #F79E1B (orange gradient)
+Amex:       #006FCF (blue) → #4B9EE7 (light blue gradient)
+Discover:   #FF6000 (orange) → #FFA366 (light orange gradient)
+Diners:     #0079BE (teal) → #4BA3D8 (light teal gradient)
+JCB:        #003A70 (dark blue) → #4B6BA3 (blue gradient)
+Default:    #424242 (dark) or #9E9E9E (light) → gradient
+```
+
+**Theme Adaptations:**
+- Dark mode: Uses `CardNumberStyles.darkStyle4` for card numbers
+- Light mode: Uses `CardNumberStyles.lightStyle1` for card numbers
+- Card background adapts with theme-aware colors
+- Action button overlays use semi-transparent white backgrounds
+
+### Localization Requirements
+
+All payment UI text must be localized with Danish as the default language:
+- Payment method screens use `AppLocalizations` for all user-facing strings
+- Stripe payment sheet configured with Danish labels (`'Gem kort'`, `'Betal'`)
+- Error messages and success notifications in Danish
+- Card nicknames and placeholders support Danish text
+
+Key localization strings in `/lib/l10n/app_da.arb`:
+- `paymentMethods`: "Betalingsmetoder"
+- `savedCards`: "Gemte kort"
+- `addCard`: "Tilføj kort"
+- `removeCard`: "Fjern kort"
+- `defaultCard`: "Standardkort"
+- `expiringCard`: "Udløber snart"
+
+### Implementation Notes for Future Developers
+
+1. **Package Dependencies**:
+   - `flutter_stripe: ^11.3.0` for payment processing
+   - `payment_card: ^0.0.1` for card visualization
+   - Both packages are configured in `pubspec.yaml`
+
+2. **Stripe Configuration**:
+   - Initialized in `StripeService` (`/lib/services/stripe_service.dart`)
+   - Uses test/production publishable keys
+   - Merchant identifier: `merchant.com.dinnerhelp`
+
+3. **Payment Flow**:
+   - Setup Intent for saving cards (no immediate payment)
+   - Payment Intent for actual bookings
+   - Both handled via Supabase Edge Functions
+
+4. **Card Management Features**:
+   - Add new payment methods with optional nickname
+   - Set default payment method
+   - Delete saved payment methods
+   - Automatic expiry warnings (60 days before expiration)
+
+5. **UI/UX Considerations**:
+   - Cards displayed in scrollable list
+   - Pull-to-refresh for updating payment methods
+   - Loading states during operations
+   - Error handling with user-friendly messages
+   - Security footer indicating encrypted payment info
+
+6. **Testing Payment Cards**:
+   - Use Stripe test card numbers
+   - Test different card brands for visual verification
+   - Verify dark/light theme switching
+   - Test Danish/English language switching
 
 ## Development Workflow
 

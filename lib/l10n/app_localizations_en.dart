@@ -306,4 +306,117 @@ class AppLocalizationsEn extends AppLocalizations {
   String guestCount(int count) {
     return '$count guests';
   }
+
+  @override
+  String get paymentMethods => 'Payment Methods';
+
+  @override
+  String get savedCards => 'Saved Cards';
+
+  @override
+  String get noPaymentMethods => 'No Payment Methods';
+
+  @override
+  String get addCard => 'Add Card';
+
+  @override
+  String get adding => 'Adding...';
+
+  @override
+  String get removeCard => 'Remove Card';
+
+  @override
+  String get cardRemoved => 'Card removed';
+
+  @override
+  String get cardRemovedSuccessfully => 'Card removed successfully';
+
+  @override
+  String get defaultCard => 'Default';
+
+  @override
+  String get expires => 'Expires';
+
+  @override
+  String get setAsDefault => 'Set as default';
+
+  @override
+  String get defaultPaymentMethodUpdated => 'Default payment method updated';
+
+  @override
+  String areYouSureRemoveCard(String last4) {
+    return 'Are you sure you want to remove the card ending in $last4?';
+  }
+
+  @override
+  String failedToRemoveCard(String message) {
+    return 'Failed to remove card: $message';
+  }
+
+  @override
+  String failedToSetDefault(String message) {
+    return 'Failed to set default: $message';
+  }
+
+  @override
+  String get cardAddedSuccessfully => 'Card added successfully';
+
+  @override
+  String get paymentSetupFailed => 'Payment setup failed';
+
+  @override
+  String get cardNickname => 'Card Nickname (Optional)';
+
+  @override
+  String get giveCardNickname =>
+      'Give this card a nickname to easily identify it';
+
+  @override
+  String get skip => 'Skip';
+
+  @override
+  String get save => 'Save';
+
+  @override
+  String get cancel => 'Cancel';
+
+  @override
+  String get remove => 'Remove';
+
+  @override
+  String get yourPaymentInfoSecure =>
+      'Your payment information is encrypted and secure';
+
+  @override
+  String get addCardToMakeBookingFaster =>
+      'Add a card to make booking faster and easier';
+
+  @override
+  String cardsSaved(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count cards saved',
+      one: '1 card saved',
+      zero: 'No cards saved',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String errorLoadingPaymentMethods(String error) {
+    return 'Error loading payment methods: $error';
+  }
+
+  @override
+  String get retry => 'Retry';
+
+  @override
+  String get personalCard => 'Personal Card';
+
+  @override
+  String get workCard => 'Work Card';
+
+  @override
+  String get expiringCard => 'Expiring Soon';
 }

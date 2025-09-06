@@ -965,6 +965,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.3.0"
+  payment_card:
+    dependency: "direct main"
+    description:
+      name: payment_card
+      sha256: "47e8ae7517ba8c4e466a935a3136175615daeeaf179b65b888a81b7868e65da0"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.0.1"
   permission_handler:
     dependency: "direct main"
     description:

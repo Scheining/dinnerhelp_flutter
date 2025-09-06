@@ -306,4 +306,118 @@ class AppLocalizationsDa extends AppLocalizations {
   String guestCount(int count) {
     return '$count personer';
   }
+
+  @override
+  String get paymentMethods => 'Betalingsmetoder';
+
+  @override
+  String get savedCards => 'Gemte kort';
+
+  @override
+  String get noPaymentMethods => 'Ingen betalingsmetoder';
+
+  @override
+  String get addCard => 'Tilføj kort';
+
+  @override
+  String get adding => 'Tilføjer...';
+
+  @override
+  String get removeCard => 'Fjern kort';
+
+  @override
+  String get cardRemoved => 'Kort fjernet';
+
+  @override
+  String get cardRemovedSuccessfully => 'Kort fjernet succesfuldt';
+
+  @override
+  String get defaultCard => 'Standard';
+
+  @override
+  String get expires => 'Udløber';
+
+  @override
+  String get setAsDefault => 'Sæt som standard';
+
+  @override
+  String get defaultPaymentMethodUpdated =>
+      'Standard betalingsmetode opdateret';
+
+  @override
+  String areYouSureRemoveCard(String last4) {
+    return 'Er du sikker på, at du vil fjerne kortet der slutter på $last4?';
+  }
+
+  @override
+  String failedToRemoveCard(String message) {
+    return 'Kunne ikke fjerne kort: $message';
+  }
+
+  @override
+  String failedToSetDefault(String message) {
+    return 'Kunne ikke sætte som standard: $message';
+  }
+
+  @override
+  String get cardAddedSuccessfully => 'Kort tilføjet succesfuldt';
+
+  @override
+  String get paymentSetupFailed => 'Betalingsopsætning mislykkedes';
+
+  @override
+  String get cardNickname => 'Kort kaldenavn (valgfrit)';
+
+  @override
+  String get giveCardNickname =>
+      'Giv dette kort et kaldenavn for nemt at identificere det';
+
+  @override
+  String get skip => 'Spring over';
+
+  @override
+  String get save => 'Gem';
+
+  @override
+  String get cancel => 'Annuller';
+
+  @override
+  String get remove => 'Fjern';
+
+  @override
+  String get yourPaymentInfoSecure =>
+      'Dine betalingsoplysninger er krypteret og sikre';
+
+  @override
+  String get addCardToMakeBookingFaster =>
+      'Tilføj et kort for at gøre booking hurtigere og nemmere';
+
+  @override
+  String cardsSaved(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count kort gemt',
+      one: '1 kort gemt',
+      zero: 'Ingen kort gemt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String errorLoadingPaymentMethods(String error) {
+    return 'Fejl ved indlæsning af betalingsmetoder: $error';
+  }
+
+  @override
+  String get retry => 'Prøv igen';
+
+  @override
+  String get personalCard => 'Personligt kort';
+
+  @override
+  String get workCard => 'Arbejdskort';
+
+  @override
+  String get expiringCard => 'Udløber snart';
 }

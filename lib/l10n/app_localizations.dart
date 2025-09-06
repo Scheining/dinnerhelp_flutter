@@ -637,6 +637,192 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count} guests'**
   String guestCount(int count);
+
+  /// Payment methods page title
+  ///
+  /// In en, this message translates to:
+  /// **'Payment Methods'**
+  String get paymentMethods;
+
+  /// Saved cards section title
+  ///
+  /// In en, this message translates to:
+  /// **'Saved Cards'**
+  String get savedCards;
+
+  /// Empty state for payment methods
+  ///
+  /// In en, this message translates to:
+  /// **'No Payment Methods'**
+  String get noPaymentMethods;
+
+  /// Add card button
+  ///
+  /// In en, this message translates to:
+  /// **'Add Card'**
+  String get addCard;
+
+  /// Adding card loading state
+  ///
+  /// In en, this message translates to:
+  /// **'Adding...'**
+  String get adding;
+
+  /// Remove card dialog title
+  ///
+  /// In en, this message translates to:
+  /// **'Remove Card'**
+  String get removeCard;
+
+  /// Card removed message
+  ///
+  /// In en, this message translates to:
+  /// **'Card removed'**
+  String get cardRemoved;
+
+  /// Card removed success message
+  ///
+  /// In en, this message translates to:
+  /// **'Card removed successfully'**
+  String get cardRemovedSuccessfully;
+
+  /// Default card label
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get defaultCard;
+
+  /// Card expiry label
+  ///
+  /// In en, this message translates to:
+  /// **'Expires'**
+  String get expires;
+
+  /// Set as default card tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Set as default'**
+  String get setAsDefault;
+
+  /// Default payment method updated message
+  ///
+  /// In en, this message translates to:
+  /// **'Default payment method updated'**
+  String get defaultPaymentMethodUpdated;
+
+  /// Remove card confirmation message
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to remove the card ending in {last4}?'**
+  String areYouSureRemoveCard(String last4);
+
+  /// Failed to remove card error
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to remove card: {message}'**
+  String failedToRemoveCard(String message);
+
+  /// Failed to set default error
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to set default: {message}'**
+  String failedToSetDefault(String message);
+
+  /// Card added success message
+  ///
+  /// In en, this message translates to:
+  /// **'Card added successfully'**
+  String get cardAddedSuccessfully;
+
+  /// Payment setup failed message
+  ///
+  /// In en, this message translates to:
+  /// **'Payment setup failed'**
+  String get paymentSetupFailed;
+
+  /// Card nickname dialog title
+  ///
+  /// In en, this message translates to:
+  /// **'Card Nickname (Optional)'**
+  String get cardNickname;
+
+  /// Card nickname explanation
+  ///
+  /// In en, this message translates to:
+  /// **'Give this card a nickname to easily identify it'**
+  String get giveCardNickname;
+
+  /// Skip button
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get skip;
+
+  /// Save button
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get save;
+
+  /// Cancel button
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancel;
+
+  /// Remove button
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get remove;
+
+  /// Payment security message
+  ///
+  /// In en, this message translates to:
+  /// **'Your payment information is encrypted and secure'**
+  String get yourPaymentInfoSecure;
+
+  /// Add card prompt message
+  ///
+  /// In en, this message translates to:
+  /// **'Add a card to make booking faster and easier'**
+  String get addCardToMakeBookingFaster;
+
+  /// Cards saved count
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No cards saved} =1{1 card saved} other{{count} cards saved}}'**
+  String cardsSaved(int count);
+
+  /// Error loading payment methods
+  ///
+  /// In en, this message translates to:
+  /// **'Error loading payment methods: {error}'**
+  String errorLoadingPaymentMethods(String error);
+
+  /// Retry button
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get retry;
+
+  /// Personal card placeholder nickname
+  ///
+  /// In en, this message translates to:
+  /// **'Personal Card'**
+  String get personalCard;
+
+  /// Work card placeholder nickname
+  ///
+  /// In en, this message translates to:
+  /// **'Work Card'**
+  String get workCard;
+
+  /// Label for cards expiring soon
+  ///
+  /// In en, this message translates to:
+  /// **'Expiring Soon'**
+  String get expiringCard;
 }
 
 class _AppLocalizationsDelegate

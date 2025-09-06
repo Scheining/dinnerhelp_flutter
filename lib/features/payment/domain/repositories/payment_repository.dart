@@ -4,6 +4,7 @@ import '../entities/payment_intent.dart';
 import '../entities/payment_method.dart';
 import '../entities/refund.dart';
 import '../entities/dispute.dart';
+import '../usecases/create_setup_intent.dart';
 
 abstract class PaymentRepository {
   /// Creates a payment intent via Supabase Edge Function
@@ -54,22 +55,23 @@ abstract class PaymentRepository {
     required String chefStripeAccountId,
   });
 
-  /// Gets saved payment methods for a user
-  Future<Either<Failure, List<PaymentMethod>>> getPaymentMethods({
-    required String userId,
-  });
+  /// Gets saved payment methods for the current user
+  Future<Either<Failure, List<PaymentMethod>>> getSavedPaymentMethods();
 
-  /// Saves a payment method for future use
+  /// Creates a SetupIntent for saving a payment method
+  Future<Either<Failure, SetupIntentResponse>> createSetupIntent();
+
+  /// Saves a payment method after successful SetupIntent
   Future<Either<Failure, PaymentMethod>> savePaymentMethod({
-    required String userId,
-    required String paymentMethodId,
-    required bool setAsDefault,
+    required String setupIntentId,
+    String? nickname,
   });
 
   /// Deletes a saved payment method
-  Future<Either<Failure, void>> deletePaymentMethod({
-    required String paymentMethodId,
-  });
+  Future<Either<Failure, void>> deletePaymentMethod(String paymentMethodId);
+  
+  /// Sets a payment method as default
+  Future<Either<Failure, PaymentMethod>> setDefaultPaymentMethod(String paymentMethodId);
 
   /// Handles Stripe webhook events
   Future<Either<Failure, void>> handleWebhookEvent({

@@ -110,7 +110,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       'Betalingsmetoder',
                       'Administrer dine betalingsmuligheder',
                       () {
-                        context.go('/profile/payment-history');
+                        context.go('/profile/payment-methods');
                       },
                     ),
                   ],
