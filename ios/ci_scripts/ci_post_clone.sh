@@ -1,35 +1,26 @@
 #!/bin/sh
 
-# This script is executed by Xcode Cloud after cloning the repository
-# It ensures all dependencies are properly installed before building
+# Fail this script if any subcommand fails.
+set -e
 
-echo "Starting post-clone setup..."
+# The default execution directory of this script is the ci_scripts directory.
+cd $CI_PRIMARY_REPOSITORY_PATH # change working directory to the root of your cloned repo.
 
-# Navigate to iOS directory
-cd ios
+# Install Flutter using git.
+git clone https://github.com/flutter/flutter.git --depth 1 -b stable $HOME/flutter
+export PATH="$PATH:$HOME/flutter/bin"
 
-# Install CocoaPods if not already installed
-if ! command -v pod &> /dev/null; then
-    echo "Installing CocoaPods..."
-    sudo gem install cocoapods
-fi
-
-# Clean previous pod installations
-echo "Cleaning previous Pod installations..."
-rm -rf Pods
-rm -f Podfile.lock
-
-# Install pods
-echo "Installing CocoaPods dependencies..."
-pod install --repo-update
-
-# Ensure Flutter is properly configured
-echo "Configuring Flutter..."
-cd ..
-flutter pub get
+# Install Flutter artifacts for iOS (--ios), or macOS (--macos) platforms.
 flutter precache --ios
 
-# Return to iOS directory
-cd ios
+# Install Flutter dependencies.
+flutter pub get
 
-echo "Post-clone setup completed successfully!"
+# Install CocoaPods using Homebrew.
+HOMEBREW_NO_AUTO_UPDATE=1 # disable homebrew's automatic updates.
+brew install cocoapods
+
+# Install CocoaPods dependencies.
+cd ios && pod install # run `pod install` in the `ios` directory.
+
+exit 0
