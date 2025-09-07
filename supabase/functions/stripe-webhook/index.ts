@@ -33,13 +33,18 @@ Deno.serve(async (req: Request) => {
     const isDevelopment = Deno.env.get('ENVIRONMENT') === 'development' || 
                          Deno.env.get('IS_LOCAL_SUPABASE') === 'true'
     
-    // Stripe CLI webhook secret for local development
-    const stripeCliSecret = 'whsec_5020e3bf0e98db6b5dd748a73dda685391f0713683b081d6780b81d552a17afe'
+    // For local development, use separate environment variable
+    if (!endpointSecret && isDevelopment) {
+      endpointSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET_LOCAL')
+      if (endpointSecret) {
+        console.log('Using local development webhook secret')
+      }
+    }
     
     // Debug logging
     console.log('=== Webhook Debug Info ===')
     console.log('Environment:', isDevelopment ? 'development' : 'production')
-    console.log('STRIPE_WEBHOOK_SECRET exists:', !!endpointSecret)
+    console.log('Webhook secret configured:', !!endpointSecret)
     if (endpointSecret) {
       console.log('Secret starts with:', endpointSecret.substring(0, 10) + '...')
       console.log('Secret length:', endpointSecret.length)
@@ -47,62 +52,40 @@ Deno.serve(async (req: Request) => {
     console.log('Received signature:', signature?.substring(0, 20) + '...')
     
     if (!endpointSecret) {
-      console.error('STRIPE_WEBHOOK_SECRET not configured - using CLI secret as fallback')
-      endpointSecret = stripeCliSecret
+      console.error('STRIPE_WEBHOOK_SECRET not configured')
+      console.error('For local development, set STRIPE_WEBHOOK_SECRET_LOCAL from stripe listen output')
+      return new Response(
+        JSON.stringify({ 
+          error: 'Webhook configuration error',
+          message: 'Webhook secret not configured. Please set appropriate environment variables.'
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
     // Get the raw body
     const body = await req.text()
     
-    // Verify webhook signature - try production secret first, then CLI secret
+    // Verify webhook signature
     let event: Stripe.Event
-    let verificationError: any = null
-    let verificationSuccess = false
     
     try {
       event = stripe.webhooks.constructEvent(body, signature, endpointSecret)
-      console.log('✅ Webhook verified with production secret')
-      verificationSuccess = true
+      console.log('✅ Webhook signature verified successfully')
     } catch (err) {
-      verificationError = err
-      console.log('❌ Production secret failed:', err.message)
-      console.log('Trying CLI secret...')
+      console.error('❌ Webhook signature verification failed:', err.message)
+      console.error('This could mean:')
+      console.error('1. The webhook secret is incorrect')
+      console.error('2. The signature has been tampered with')
+      console.error('3. The raw body has been modified before verification')
       
-      // Try with Stripe CLI secret as fallback
-      try {
-        event = stripe.webhooks.constructEvent(body, signature, stripeCliSecret)
-        console.log('✅ Webhook verified with CLI secret')
-        verificationSuccess = true
-      } catch (cliErr) {
-        console.error('❌ Webhook signature verification failed with both secrets')
-        console.error('Production secret error:', err.message)
-        console.error('CLI secret error:', cliErr.message)
-        
-        // TEMPORARY: Parse the event without verification for debugging
-        console.log('⚠️ TEMPORARY: Processing webhook WITHOUT signature verification for debugging')
-        try {
-          event = JSON.parse(body) as Stripe.Event
-          console.log('Parsed event type:', event.type)
-          console.log('Parsed event ID:', event.id)
-          
-          // Still log the error but continue processing
-          console.error('SIGNATURE MISMATCH - This should be fixed in production!')
-        } catch (parseErr) {
-          console.error('Failed to parse webhook body:', parseErr)
-          return new Response(
-            JSON.stringify({ 
-              error: `Webhook Error: ${err.message}`,
-              details: {
-                production_error: err.message,
-                cli_error: cliErr.message,
-                parse_error: parseErr.message,
-                hint: 'Check webhook secret configuration'
-              }
-            }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          )
-        }
-      }
+      return new Response(
+        JSON.stringify({ 
+          error: `Webhook Error: ${err.message}`,
+          hint: 'Check webhook secret configuration in environment variables'
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
     console.log('Webhook event received:', event.type)

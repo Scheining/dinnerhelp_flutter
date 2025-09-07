@@ -49,6 +49,9 @@ app.*.map.json
 .env.local
 .env.production
 .env.staging
+supabase/.env
+supabase/.env.local
+supabase/.env.production
 
 # iOS specific
 ios/Pods/

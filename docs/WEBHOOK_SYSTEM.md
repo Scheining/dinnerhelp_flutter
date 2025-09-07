@@ -106,11 +106,36 @@ supabase config push
 ```
 
 ### Testing Locally
+
+#### Setup Local Environment
+1. Copy the example environment file:
+```bash
+cp supabase/.env.local.example supabase/.env.local
+```
+
+2. Start Stripe CLI webhook forwarding:
 ```bash
 # Use Stripe CLI for local testing
 stripe listen --forward-to localhost:54321/functions/v1/stripe-webhook
 
-# Trigger test events
+# The CLI will output something like:
+# Your webhook signing secret is whsec_abc123...
+```
+
+3. Add the webhook secret to your local environment:
+```bash
+# Edit supabase/.env.local and add:
+STRIPE_WEBHOOK_SECRET_LOCAL=whsec_abc123... # From stripe listen output
+```
+
+4. Start Supabase with environment variables:
+```bash
+# Load local environment and start Supabase
+supabase start --env-file ./supabase/.env.local
+```
+
+5. Trigger test events:
+```bash
 stripe trigger payment_intent.succeeded
 ```
 
