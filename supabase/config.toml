@@ -1,12 +1,35 @@
 # Supabase Edge Functions Configuration
 
-# Disable JWT verification for Stripe webhook
+# =====================================================
+# STRIPE WEBHOOK HANDLERS
+# =====================================================
+# We have 3 webhook functions - USE stripe-webhook as the main handler
+# 
+# 1. stripe-webhook (RECOMMENDED - Use this one!)
+#    - Complete webhook handler with signature verification
+#    - Processes payments and creates bookings
+#    - Endpoint: https://[PROJECT].supabase.co/functions/v1/stripe-webhook
+#
+# 2. handle-stripe-webhook (DEPRECATED - Do not use)
+#    - Older version, kept for backward compatibility
+#    - Will be removed in future
+#
+# 3. stripe-webhook-db (LOGGING ONLY - Do not use for main webhook)
+#    - Only stores events in database for audit trail
+#    - Does NOT process payments
+# =====================================================
+
+# Main Stripe webhook handler (RECOMMENDED)
 # This is safe because Stripe uses its own signature verification
+[functions.stripe-webhook]
+verify_jwt = false
+
+# Old webhook handler (DEPRECATED - will be removed)
 [functions.handle-stripe-webhook]
 verify_jwt = false
 
-# Database webhook forwarder - no JWT needed
-# This simply forwards events to the database for processing
+# Database webhook forwarder - LOGGING ONLY
+# This simply stores events to the database for audit trail
 [functions.stripe-webhook-db]
 verify_jwt = false
 

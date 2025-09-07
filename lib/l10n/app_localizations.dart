@@ -823,6 +823,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Expiring Soon'**
   String get expiringCard;
+
+  /// Location selector dialog title
+  ///
+  /// In en, this message translates to:
+  /// **'Select Location'**
+  String get selectLocation;
+
+  /// Use current location option
+  ///
+  /// In en, this message translates to:
+  /// **'Use Current Location'**
+  String get useCurrentLocation;
+
+  /// Manual location entry option
+  ///
+  /// In en, this message translates to:
+  /// **'Enter Manually'**
+  String get enterManually;
+
+  /// Manual location entry hint
+  ///
+  /// In en, this message translates to:
+  /// **'Type city or address'**
+  String get typeLocationOrAddress;
+
+  /// Location loading state
+  ///
+  /// In en, this message translates to:
+  /// **'Getting location...'**
+  String get gettingLocation;
+
+  /// Location unavailable error
+  ///
+  /// In en, this message translates to:
+  /// **'Location unavailable'**
+  String get locationUnavailable;
+
+  /// Location permission needed message
+  ///
+  /// In en, this message translates to:
+  /// **'Location permission needed'**
+  String get locationPermissionNeeded;
+
+  /// Location services disabled message
+  ///
+  /// In en, this message translates to:
+  /// **'Location disabled'**
+  String get locationDisabled;
+
+  /// Location timeout error
+  ///
+  /// In en, this message translates to:
+  /// **'Location timeout'**
+  String get locationTimeout;
+
+  /// Generic location error
+  ///
+  /// In en, this message translates to:
+  /// **'Location error'**
+  String get locationError;
+
+  /// Coming soon message for manual location
+  ///
+  /// In en, this message translates to:
+  /// **'Manual location picker coming soon'**
+  String get manualLocationComingSoon;
+
+  /// Precise location description
+  ///
+  /// In en, this message translates to:
+  /// **'Get your precise location'**
+  String get getPreciseLocation;
 }
 
 class _AppLocalizationsDelegate

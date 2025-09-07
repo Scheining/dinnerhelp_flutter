@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../l10n/app_localizations.dart';
 import '../providers/location_providers.dart';
 import '../exceptions/location_exceptions.dart';
 import 'location_permission_dialog.dart';
@@ -46,7 +47,7 @@ class LocationSelector extends ConsumerWidget {
             child: locationState.when(
               data: (location) => _buildLocationDisplay(
                 context, 
-                location?.address ?? 'Vælg placering',
+                location?.address ?? AppLocalizations.of(context)!.selectLocation,
                 hasLocation: location != null,
               ),
               loading: () => _buildLoadingDisplay(context),
@@ -91,7 +92,7 @@ class LocationSelector extends ConsumerWidget {
         ),
         const SizedBox(width: 8),
         Text(
-          'Getting location...',
+          AppLocalizations.of(context)!.gettingLocation,
           style: TextStyle(
             color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
             fontSize: 14,
@@ -102,21 +103,22 @@ class LocationSelector extends ConsumerWidget {
   }
 
   Widget _buildErrorDisplay(BuildContext context, Object error) {
-    String errorText = 'Location unavailable';
+    final l10n = AppLocalizations.of(context)!;
+    String errorText = l10n.locationUnavailable;
     
     if (error is LocationException) {
       switch (error.type) {
         case LocationErrorType.permissionDenied:
-          errorText = 'Permission needed';
+          errorText = l10n.locationPermissionNeeded;
           break;
         case LocationErrorType.serviceDisabled:
-          errorText = 'Location disabled';
+          errorText = l10n.locationDisabled;
           break;
         case LocationErrorType.timeout:
-          errorText = 'Location timeout';
+          errorText = l10n.locationTimeout;
           break;
         default:
-          errorText = 'Location error';
+          errorText = l10n.locationError;
       }
     }
 
@@ -155,7 +157,7 @@ class LocationSelector extends ConsumerWidget {
       backgroundColor: Colors.transparent,
       builder: (context) => LocationOptionsSheet(
         onRefresh: () => _retryLocation(ref),
-        onSelectManually: () => _showManualLocationPicker(context),
+        onSelectManually: () => _showManualLocationPicker(context, ref),
       ),
     );
   }
@@ -172,11 +174,14 @@ class LocationSelector extends ConsumerWidget {
     LocationPermissionDialog.showLocationServiceDisabledDialog(context);
   }
 
-  void _showManualLocationPicker(BuildContext context) {
-    // TODO: Implement manual location picker
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Manual location picker coming soon'),
+  void _showManualLocationPicker(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => _ManualLocationDialog(
+        onLocationSubmit: (address) {
+          Navigator.pop(dialogContext);
+          ref.read(locationNotifierProvider.notifier).setManualLocation(address);
+        },
       ),
     );
   }
@@ -195,9 +200,11 @@ class LocationOptionsSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: BoxDecoration(
+        color: Theme.of(context).brightness == Brightness.light
+            ? Colors.white
+            : Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: SafeArea(
         child: Column(
@@ -208,7 +215,9 @@ class LocationOptionsSheet extends StatelessWidget {
               height: 4,
               margin: const EdgeInsets.symmetric(vertical: 12),
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
+                color: Theme.of(context).brightness == Brightness.light
+                    ? Colors.grey.shade300
+                    : Colors.grey.shade700,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -218,17 +227,18 @@ class LocationOptionsSheet extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Select Location',
+                    AppLocalizations.of(context)!.selectLocation,
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w600,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 16),
                   _buildOption(
                     context,
                     icon: Icons.my_location,
-                    title: 'Use Current Location',
-                    subtitle: 'Get your precise location',
+                    title: AppLocalizations.of(context)!.useCurrentLocation,
+                    subtitle: AppLocalizations.of(context)!.getPreciseLocation,
                     onTap: () {
                       Navigator.pop(context);
                       onRefresh();
@@ -237,8 +247,8 @@ class LocationOptionsSheet extends StatelessWidget {
                   _buildOption(
                     context,
                     icon: Icons.search,
-                    title: 'Enter Manually',
-                    subtitle: 'Type city or address',
+                    title: AppLocalizations.of(context)!.enterManually,
+                    subtitle: AppLocalizations.of(context)!.typeLocationOrAddress,
                     onTap: () {
                       Navigator.pop(context);
                       onSelectManually();
@@ -266,28 +276,99 @@ class LocationOptionsSheet extends StatelessWidget {
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: Theme.of(context).primaryColor.withOpacity(0.1),
+          color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Icon(
           icon,
-          color: Theme.of(context).primaryColor,
+          color: Theme.of(context).colorScheme.primary,
           size: 20,
         ),
       ),
       title: Text(
         title,
-        style: const TextStyle(fontWeight: FontWeight.w500),
+        style: TextStyle(
+          fontWeight: FontWeight.w500,
+          color: Theme.of(context).colorScheme.onSurface,
+        ),
       ),
       subtitle: Text(
         subtitle,
         style: TextStyle(
-          color: Colors.grey.shade600,
+          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
           fontSize: 12,
         ),
       ),
       onTap: onTap,
       contentPadding: EdgeInsets.zero,
     );
+  }
+}
+
+class _ManualLocationDialog extends StatefulWidget {
+  final void Function(String address) onLocationSubmit;
+
+  const _ManualLocationDialog({
+    required this.onLocationSubmit,
+  });
+
+  @override
+  State<_ManualLocationDialog> createState() => _ManualLocationDialogState();
+}
+
+class _ManualLocationDialogState extends State<_ManualLocationDialog> {
+  final _controller = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    
+    return AlertDialog(
+      title: Text(l10n.enterManually),
+      content: Form(
+        key: _formKey,
+        child: TextFormField(
+          controller: _controller,
+          decoration: InputDecoration(
+            hintText: l10n.typeLocationOrAddress,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            prefixIcon: const Icon(Icons.location_on_outlined),
+          ),
+          textCapitalization: TextCapitalization.words,
+          validator: (value) {
+            if (value == null || value.trim().isEmpty) {
+              return l10n.locationPermissionRequired;
+            }
+            return null;
+          },
+          onFieldSubmitted: (_) => _submitLocation(),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l10n.cancel),
+        ),
+        FilledButton(
+          onPressed: _submitLocation,
+          child: Text(l10n.save),
+        ),
+      ],
+    );
+  }
+
+  void _submitLocation() {
+    if (_formKey.currentState!.validate()) {
+      widget.onLocationSubmit(_controller.text.trim());
+    }
   }
 }

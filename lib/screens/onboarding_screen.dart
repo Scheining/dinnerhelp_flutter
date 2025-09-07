@@ -9,8 +9,11 @@ class OnboardingScreen extends StatelessWidget {
   static const String onboardingCompleteKey = 'onboarding_complete';
 
   Future<void> _completeOnboarding(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(onboardingCompleteKey, true);  // Mark onboarding as completed
+    
     if (context.mounted) {
-      context.go('/');
+      context.go('/auth/signup');  // Navigate to signup page
     }
   }
 
@@ -31,32 +34,22 @@ class OnboardingScreen extends StatelessWidget {
           borderRadius: BorderRadius.circular(25),
         ),
       ),
-      skipIcon: const Icon(
-        Icons.arrow_forward_ios,
-        color: Colors.transparent,
-      ),
+      // Let the package use its default button
       skipTextButton: Text(
         'Spring over',
         style: TextStyle(
           fontSize: 16,
-          color: primaryColor,
+          color: Theme.of(context).brightness == Brightness.dark
+              ? primaryColor  // Teal for dark mode
+              : Colors.black, // Black for light mode
           fontWeight: FontWeight.w600,
         ),
       ),
-      trailing: Text(
-        'Log ind',
-        style: TextStyle(
-          fontSize: 16,
-          color: primaryColor,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-      trailingFunction: () => _completeOnboarding(context),
       controllerColor: primaryColor,
       totalPage: 6,
       headerBackgroundColor: backgroundColor,
       pageBackgroundColor: backgroundColor,
-      centerBackground: true,
+      centerBackground: false, // Don't center the background
       speed: 1.8,
       pageBodies: [
         // Slide 1 - Velkommen til DinnerHelp
@@ -99,8 +92,8 @@ class OnboardingScreen extends StatelessWidget {
         _buildSlideBody(
           context,
           icon: Icons.verified_user,
-          title: 'Screenede helpers. Sikker booking.',
-          description: 'Alle helpers er kvalitetssikret, og hver booking er dækket af DinnerHelp-garantien. Du kan trygt overlade køkkenet til os.',
+          title: 'Tryg og sikker booking',
+          description: 'Alle helpers er kvalitetssikret og nøje udvalgt. Hver booking er dækket af DinnerHelp-garantien, så du kan trygt overlade køkkenet til os.',
           showSwipeHint: true,
         ),
         
@@ -114,7 +107,7 @@ class OnboardingScreen extends StatelessWidget {
         ),
       ],
       background: [
-        // Each slide gets a background with placeholder image
+        // Simple image containers like the example
         _buildSlideBackground(context),
         _buildSlideBackground(context),
         _buildSlideBackground(context),
@@ -201,28 +194,12 @@ class OnboardingScreen extends StatelessWidget {
   }
 
   Widget _buildSlideBackground(BuildContext context) {
-    return Container(
-      color: Theme.of(context).brightness == Brightness.light
-          ? Colors.white
-          : Theme.of(context).scaffoldBackgroundColor,
-      child: Column(
-        children: [
-          const SizedBox(height: 60),
-          // Placeholder image using default chef cover
-          Container(
-            height: 200,
-            width: double.infinity,
-            margin: const EdgeInsets.symmetric(horizontal: 20),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(15),
-              image: const DecorationImage(
-                image: AssetImage('assets/images/chef_detail_default_cover.jpeg'),
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-        ],
-      ),
+    // Simple Image.asset like the example
+    return Image.asset(
+      'assets/images/logo_brand.png',
+      width: MediaQuery.of(context).size.width,
+      height: 250,
+      fit: BoxFit.cover,
     );
   }
 }

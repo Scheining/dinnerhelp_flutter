@@ -49,30 +49,30 @@ final routerProvider = Provider<GoRouter>((ref) {
     debugLogDiagnostics: true,
     refreshListenable: AuthStateNotifier(),
     redirect: (context, state) async {
+      // Check onboarding status
+      final prefs = await SharedPreferences.getInstance();
+      final onboardingComplete = prefs.getBool(OnboardingScreen.onboardingCompleteKey) ?? false;
+      
       // Check if user is authenticated
       final isAuthenticated = Supabase.instance.client.auth.currentUser != null;
       final isAuthRoute = state.uri.path.startsWith('/auth');
       final isOnboardingRoute = state.uri.path == '/onboarding';
       
-      debugPrint('Router redirect - Authenticated: $isAuthenticated, AuthRoute: $isAuthRoute, Path: ${state.uri.path}');
+      debugPrint('Router redirect - Onboarded: $onboardingComplete, Authenticated: $isAuthenticated, Path: ${state.uri.path}');
       
-      // If not authenticated and trying to access protected route
-      if (!isAuthenticated && !isAuthRoute && !isOnboardingRoute) {
+      // First-time user: Show onboarding before anything else
+      if (!onboardingComplete && !isOnboardingRoute) {
+        return '/onboarding';
+      }
+      
+      // Onboarding complete but not authenticated: Show login
+      if (onboardingComplete && !isAuthenticated && !isAuthRoute && !isOnboardingRoute) {
         return '/auth/signin';
       }
       
-      // If authenticated
-      if (isAuthenticated) {
-        // If authenticated and trying to access auth routes, go to onboarding first
-        if (isAuthRoute) {
-          return '/onboarding';
-        }
-        
-        // If coming from a fresh login (typically from auth), show onboarding
-        if (state.uri.path == '/' && !isOnboardingRoute) {
-          // Check if this is a fresh navigation after login
-          return '/onboarding';
-        }
+      // Authenticated users trying to access auth routes: Go home
+      if (isAuthenticated && isAuthRoute) {
+        return '/';
       }
       
       return null;

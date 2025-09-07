@@ -193,7 +193,7 @@ ThemeData get darkTheme => ThemeData(
   brightness: Brightness.dark,
   scaffoldBackgroundColor: Color(0xFF000000), // Pure black background
   appBarTheme: const AppBarTheme(
-    backgroundColor: Color(0xFF252325), // Unified app bar color
+    backgroundColor: Colors.black, // Pure black app bar for dark mode
     foregroundColor: DarkModeColors.darkOnPrimaryContainer,
     elevation: 0,
     surfaceTintColor: Colors.transparent, // Prevent Material 3 tinting

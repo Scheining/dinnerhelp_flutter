@@ -525,7 +525,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       };
 
       // Create payment intent with reservation (no booking yet!)
-      final clientSecret = await _stripeService.createPaymentIntent(
+      final paymentIntentData = await _stripeService.createPaymentIntent(
         bookingData: bookingData, // NEW: Pass booking data instead of bookingId
         amount: totalAmountInOre,
         serviceFeeAmount: userServiceFee,
@@ -534,11 +534,18 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
         chefId: widget.chef.id,
       );
 
-      // Initialize payment sheet
+      // Extract client secret and customer data
+      final clientSecret = paymentIntentData['client_secret'] as String;
+      final customerId = paymentIntentData['customer_id'] as String?;
+      final ephemeralKey = paymentIntentData['ephemeral_key'] as String?;
+      
+      // Initialize payment sheet with customer data for saved cards
       await _stripeService.initPaymentSheet(
         clientSecret: clientSecret,
         customerEmail: user.email ?? '',
         merchantDisplayName: 'DinnerHelp',
+        customerId: customerId,
+        customerEphemeralKeySecret: ephemeralKey,
       );
 
       // Present payment sheet

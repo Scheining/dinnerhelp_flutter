@@ -58,6 +58,18 @@ Deno.serve(async (req: Request) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseKey)
+    
+    // Get auth header to identify user
+    const authHeader = req.headers.get('Authorization')
+    let currentUserId: string | null = null
+    
+    if (authHeader) {
+      const token = authHeader.replace('Bearer ', '')
+      const { data: { user }, error } = await supabase.auth.getUser(token)
+      if (!error && user) {
+        currentUserId = user.id
+      }
+    }
 
     // Handle both old and new approaches
     let booking = null
@@ -179,16 +191,62 @@ Deno.serve(async (req: Request) => {
     
     // What chef actually receives (base minus their commission)
     const chefPayout = baseAmount - chefCommission
+    
+    // Get or create Stripe customer for the user
+    let stripeCustomerId: string | null = null
+    let ephemeralKey: any = null
+    
+    if (currentUserId || booking_data?.user_id || booking?.user_id) {
+      const userId = currentUserId || booking_data?.user_id || booking?.user_id
+      
+      // Check if user already has a Stripe customer ID
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('stripe_customer_id, email')
+        .eq('id', userId)
+        .single()
+      
+      if (profile?.stripe_customer_id) {
+        stripeCustomerId = profile.stripe_customer_id
+      } else if (profile?.email) {
+        // Create new Stripe customer
+        const customer = await stripe.customers.create({
+          email: profile.email,
+          metadata: {
+            user_id: userId,
+            platform: 'dinnerhelp'
+          }
+        })
+        
+        stripeCustomerId = customer.id
+        
+        // Store customer ID in profile
+        await supabase
+          .from('profiles')
+          .update({ stripe_customer_id: stripeCustomerId })
+          .eq('id', userId)
+      }
+      
+      // Generate ephemeral key for the customer
+      if (stripeCustomerId) {
+        ephemeralKey = await stripe.ephemeralKeys.create(
+          { customer: stripeCustomerId },
+          { apiVersion: '2023-10-16' }
+        )
+      }
+    }
 
     // Create Stripe payment intent with Connect
     const paymentIntent = await stripe.paymentIntents.create(
       {
         amount, // Total amount user pays (includes VAT)
         currency: 'dkk',
+        customer: stripeCustomerId || undefined, // Attach customer if available
         // Payment captured immediately (no manual capture)
         automatic_payment_methods: {
           enabled: true,
         },
+        setup_future_usage: 'off_session', // Allow saving card for future use
         application_fee_amount: applicationFeeAmount, // Platform's fee
         transfer_data: {
           destination: chef_stripe_account_id,
@@ -270,8 +328,16 @@ Deno.serve(async (req: Request) => {
         .eq('id', booking_id)
     }
 
+    // Return payment intent with customer data
+    const response = {
+      ...storedPaymentIntent,
+      customer_id: stripeCustomerId,
+      ephemeral_key: ephemeralKey?.secret || null,
+      ephemeral_key_expires: ephemeralKey?.expires || null
+    }
+    
     return new Response(
-      JSON.stringify(storedPaymentIntent),
+      JSON.stringify(response),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 

@@ -672,5 +672,65 @@
   "expiringCard": "Expiring Soon",
   "@expiringCard": {
     "description": "Label for cards expiring soon"
+  },
+  
+  "selectLocation": "Select Location",
+  "@selectLocation": {
+    "description": "Location selector dialog title"
+  },
+  
+  "useCurrentLocation": "Use Current Location",
+  "@useCurrentLocation": {
+    "description": "Use current location option"
+  },
+  
+  "enterManually": "Enter Manually",
+  "@enterManually": {
+    "description": "Manual location entry option"
+  },
+  
+  "typeLocationOrAddress": "Type city or address",
+  "@typeLocationOrAddress": {
+    "description": "Manual location entry hint"
+  },
+  
+  "gettingLocation": "Getting location...",
+  "@gettingLocation": {
+    "description": "Location loading state"
+  },
+  
+  "locationUnavailable": "Location unavailable",
+  "@locationUnavailable": {
+    "description": "Location unavailable error"
+  },
+  
+  "locationPermissionNeeded": "Location permission needed",
+  "@locationPermissionNeeded": {
+    "description": "Location permission needed message"
+  },
+  
+  "locationDisabled": "Location disabled",
+  "@locationDisabled": {
+    "description": "Location services disabled message"
+  },
+  
+  "locationTimeout": "Location timeout",
+  "@locationTimeout": {
+    "description": "Location timeout error"
+  },
+  
+  "locationError": "Location error",
+  "@locationError": {
+    "description": "Generic location error"
+  },
+  
+  "manualLocationComingSoon": "Manual location picker coming soon",
+  "@manualLocationComingSoon": {
+    "description": "Coming soon message for manual location"
+  },
+  
+  "getPreciseLocation": "Get your precise location",
+  "@getPreciseLocation": {
+    "description": "Precise location description"
   }
 }

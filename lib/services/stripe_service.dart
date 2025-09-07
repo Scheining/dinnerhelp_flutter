@@ -36,9 +36,9 @@ class StripeService {
     }
   }
   
-  /// Create payment intent via Edge Function and return client secret
+  /// Create payment intent via Edge Function and return client secret with customer data
   /// Now supports both old (with bookingId) and new (with bookingData) approaches
-  Future<String> createPaymentIntent({
+  Future<Map<String, dynamic>> createPaymentIntent({
     String? bookingId, // Now optional for backward compatibility
     required int amount,
     required int serviceFeeAmount,
@@ -89,27 +89,42 @@ class StripeService {
         throw Exception('Failed to create payment intent: ${response.data?['error'] ?? 'Unknown error'}');
       }
       
-      return response.data['client_secret'];
+      // Return full response including customer data
+      return {
+        'client_secret': response.data['client_secret'],
+        'customer_id': response.data['customer_id'],
+        'ephemeral_key': response.data['ephemeral_key'],
+      };
     } catch (e) {
       debugPrint('Error creating payment intent: $e');
       rethrow;
     }
   }
   
-  /// Initialize payment sheet with payment intent
+  /// Initialize payment sheet with payment intent and customer data
   Future<void> initPaymentSheet({
     required String clientSecret,
     required String customerEmail,
     required String merchantDisplayName,
+    String? customerId,
+    String? customerEphemeralKeySecret,
   }) async {
     try {
       await Stripe.instance.initPaymentSheet(
         paymentSheetParameters: SetupPaymentSheetParameters(
           paymentIntentClientSecret: clientSecret,
           merchantDisplayName: merchantDisplayName,
-          customerEphemeralKeySecret: null,
+          customerId: customerId,
+          customerEphemeralKeySecret: customerEphemeralKeySecret,
+          allowsDelayedPaymentMethods: true, // Allow saving cards for future use
           style: ThemeMode.system,
           primaryButtonLabel: 'Betal', // Danish for "Pay"
+          billingDetailsCollectionConfiguration: const BillingDetailsCollectionConfiguration(
+            email: CollectionMode.automatic,
+            phone: CollectionMode.automatic,
+            address: AddressCollectionMode.never,
+            name: CollectionMode.automatic,
+          ),
           appearance: PaymentSheetAppearance(
             colors: PaymentSheetAppearanceColors(
               primary: const Color(0xFF79CBC2),

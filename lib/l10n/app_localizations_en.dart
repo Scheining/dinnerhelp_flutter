@@ -419,4 +419,40 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get expiringCard => 'Expiring Soon';
+
+  @override
+  String get selectLocation => 'Select Location';
+
+  @override
+  String get useCurrentLocation => 'Use Current Location';
+
+  @override
+  String get enterManually => 'Enter Manually';
+
+  @override
+  String get typeLocationOrAddress => 'Type city or address';
+
+  @override
+  String get gettingLocation => 'Getting location...';
+
+  @override
+  String get locationUnavailable => 'Location unavailable';
+
+  @override
+  String get locationPermissionNeeded => 'Location permission needed';
+
+  @override
+  String get locationDisabled => 'Location disabled';
+
+  @override
+  String get locationTimeout => 'Location timeout';
+
+  @override
+  String get locationError => 'Location error';
+
+  @override
+  String get manualLocationComingSoon => 'Manual location picker coming soon';
+
+  @override
+  String get getPreciseLocation => 'Get your precise location';
 }

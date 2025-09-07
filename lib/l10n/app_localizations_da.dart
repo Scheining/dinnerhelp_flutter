@@ -420,4 +420,40 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get expiringCard => 'Udløber snart';
+
+  @override
+  String get selectLocation => 'Vælg placering';
+
+  @override
+  String get useCurrentLocation => 'Brug nuværende placering';
+
+  @override
+  String get enterManually => 'Indtast manuelt';
+
+  @override
+  String get typeLocationOrAddress => 'Indtast by eller adresse';
+
+  @override
+  String get gettingLocation => 'Henter placering...';
+
+  @override
+  String get locationUnavailable => 'Placering utilgængelig';
+
+  @override
+  String get locationPermissionNeeded => 'Placeringstilladelse påkrævet';
+
+  @override
+  String get locationDisabled => 'Placering deaktiveret';
+
+  @override
+  String get locationTimeout => 'Placering timeout';
+
+  @override
+  String get locationError => 'Placeringsfejl';
+
+  @override
+  String get manualLocationComingSoon => 'Manuel placering kommer snart';
+
+  @override
+  String get getPreciseLocation => 'Få din præcise placering';
 }

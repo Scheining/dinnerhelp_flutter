@@ -58,6 +58,39 @@ class LocationNotifier extends _$LocationNotifier {
     state = const AsyncValue.data(null);
   }
 
+  /// Set location manually with an address
+  Future<void> setManualLocation(String address) async {
+    state = const AsyncValue.loading();
+    
+    try {
+      // For now, we'll just set the address without coordinates
+      // In the future, this could use a geocoding service
+      final locationData = LocationData(
+        position: Position(
+          latitude: 55.6761, // Default to Copenhagen coordinates
+          longitude: 12.5683,
+          timestamp: DateTime.now(),
+          accuracy: 0,
+          altitude: 0,
+          altitudeAccuracy: 0,
+          heading: 0,
+          headingAccuracy: 0,
+          speed: 0,
+          speedAccuracy: 0,
+        ),
+        address: address,
+        timestamp: DateTime.now(),
+      );
+      
+      state = AsyncValue.data(locationData);
+    } catch (e) {
+      state = AsyncValue.error(
+        LocationException('Failed to set location: ${e.toString()}'),
+        StackTrace.current,
+      );
+    }
+  }
+
   /// Try to get last known location without triggering loading state
   Future<void> _tryGetLastKnownLocation() async {
     try {
