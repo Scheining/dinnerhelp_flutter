@@ -69,5 +69,7 @@
 	<string>DinnerHelp needs camera access to take profile photos and share dining experiences</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>DinnerHelp needs access to your photo library to select profile pictures and food images</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>DinnerHelp uses Face ID to secure your account login and payment transactions</string>
 </dict>
 </plist>

@@ -13,53 +13,53 @@ class CondensedCuisineSelector extends StatelessWidget {
     required this.onCuisineSelected,
   });
 
-  // Use the same gradient colors as CategoryChip
+  // Use the same gradient colors as CategoryChip with transparency
   List<Color> _getGradientColors(String cuisineId) {
     switch (cuisineId) {
       case 'nordic':
         return [
-          const Color(0xFF6B4226),
-          const Color(0xFF8B5A3C)
+          const Color(0xFF6B4226).withOpacity(0.4),
+          const Color(0xFF8B5A3C).withOpacity(0.4)
         ]; // Brown gradient
       case 'italian':
         return [
-          const Color(0xFF1B4A3A),
-          const Color(0xFF2D6B4F)
+          const Color(0xFF1B4A3A).withOpacity(0.4),
+          const Color(0xFF2D6B4F).withOpacity(0.4)
         ]; // Dark green gradient
       case 'asian':
         return [
-          const Color(0xFF1A4B6B),
-          const Color(0xFF2980B9)
+          const Color(0xFF1A4B6B).withOpacity(0.4),
+          const Color(0xFF2980B9).withOpacity(0.4)
         ]; // Blue gradient
       case 'french':
         return [
-          const Color(0xFF6B4A7C),
-          const Color(0xFF8E44AD)
+          const Color(0xFF6B4A7C).withOpacity(0.4),
+          const Color(0xFF8E44AD).withOpacity(0.4)
         ]; // Purple gradient
       case 'mediterranean':
         return [
-          const Color(0xFF6B7A26),
-          const Color(0xFF8D9A42)
+          const Color(0xFF6B7A26).withOpacity(0.4),
+          const Color(0xFF8D9A42).withOpacity(0.4)
         ]; // Olive gradient
       case 'seafood':
         return [
-          const Color(0xFF2E8B8B),
-          const Color(0xFF4ECDC4)
+          const Color(0xFF2E8B8B).withOpacity(0.4),
+          const Color(0xFF4ECDC4).withOpacity(0.4)
         ]; // Teal gradient
       case 'vegetarian':
         return [
-          const Color(0xFF4A7C59),
-          const Color(0xFF5D8E6A)
+          const Color(0xFF4A7C59).withOpacity(0.4),
+          const Color(0xFF5D8E6A).withOpacity(0.4)
         ]; // Green gradient
       case 'danish':
         return [
-          const Color(0xFF8B5A3C),
-          const Color(0xFFA0724C)
+          const Color(0xFF8B5A3C).withOpacity(0.4),
+          const Color(0xFFA0724C).withOpacity(0.4)
         ]; // Light brown gradient
       default:
         return [
-          const Color(0xFF6B4226),
-          const Color(0xFF8B5A3C)
+          const Color(0xFF6B4226).withOpacity(0.4),
+          const Color(0xFF8B5A3C).withOpacity(0.4)
         ]; // Default brown
     }
   }
@@ -90,6 +90,7 @@ class CondensedCuisineSelector extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
+                  color: Colors.transparent,
                   gradient: LinearGradient(
                     colors: gradientColors,
                     begin: Alignment.topLeft,
@@ -101,7 +102,7 @@ class CondensedCuisineSelector extends StatelessWidget {
                       : null,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
+                      color: Colors.black.withValues(alpha: 0.04),
                       offset: const Offset(0, 2),
                       blurRadius: 4,
                       spreadRadius: 0,

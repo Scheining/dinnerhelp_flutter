@@ -52,6 +52,8 @@ dependencies:
   flutter_onboarding_slider: ^1.0.11
   # For enhanced payment card UI
   payment_card: ^0.0.1
+  # For biometric authentication (Face ID/Touch ID)
+  local_auth: ^2.2.0
 
 dev_dependencies:
   flutter_test:

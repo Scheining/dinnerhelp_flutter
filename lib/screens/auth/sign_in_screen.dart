@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:homechef/widgets/custom_button.dart';
 import 'package:homechef/providers/auth_provider.dart';
+import 'package:homechef/services/biometric_service.dart';
 
 class SignInScreen extends ConsumerStatefulWidget {
   const SignInScreen({super.key});
@@ -19,12 +20,38 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
   bool _isLoading = false;
   bool _obscurePassword = true;
   String? _errorMessage;
+  bool _biometricAvailable = false;
+  bool _hasSavedCredentials = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkBiometricAvailability();
+  }
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _checkBiometricAvailability() async {
+    final biometricAvailable = await BiometricService.instance.isBiometricAvailable();
+    final biometricEnabled = await BiometricService.instance.isBiometricLoginEnabled();
+    final hasSavedCredentials = await BiometricService.instance.getSavedCredentials() != null;
+    
+    if (mounted) {
+      setState(() {
+        _biometricAvailable = biometricAvailable;
+        _hasSavedCredentials = biometricEnabled && hasSavedCredentials;
+      });
+      
+      // Auto-prompt for biometric login if available
+      if (_hasSavedCredentials && biometricAvailable) {
+        _signInWithBiometric();
+      }
+    }
   }
 
   @override
@@ -231,6 +258,50 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                 
                 const SizedBox(height: 16),
                 
+                // Biometric Login Button
+                if (_biometricAvailable && _hasSavedCredentials)
+                  Column(
+                    children: [
+                      OutlinedButton(
+                        onPressed: _isLoading ? null : _signInWithBiometric,
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          side: BorderSide(
+                            color: theme.colorScheme.primary,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.fingerprint,
+                              color: theme.colorScheme.primary,
+                            ),
+                            const SizedBox(width: 12),
+                            FutureBuilder<String>(
+                              future: BiometricService.instance.getAvailableBiometricString(),
+                              builder: (context, snapshot) {
+                                final biometricType = snapshot.data ?? 'Biometrisk';
+                                return Text(
+                                  'Log ind med $biometricType',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                    color: theme.colorScheme.primary,
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
+                
                 // OR Divider
                 Row(
                   children: [
@@ -369,6 +440,66 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
       email: email,
       password: password,
     );
+    
+    // Save credentials for biometric login if successful
+    final authState = ref.read(authNotifierProvider);
+    if (authState is AuthStateAuthenticated && _biometricAvailable) {
+      final shouldEnableBiometric = await _askToEnableBiometric();
+      if (shouldEnableBiometric) {
+        await BiometricService.instance.setBiometricLoginEnabled(true);
+        await BiometricService.instance.saveCredentials(email, password);
+      }
+    }
+  }
+  
+  Future<bool> _askToEnableBiometric() async {
+    final biometricType = await BiometricService.instance.getAvailableBiometricString();
+    
+    return await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Aktiver $biometricType login'),
+        content: Text(
+          'Vil du bruge $biometricType til at logge ind hurtigere næste gang?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Nej tak'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Ja, aktiver'),
+          ),
+        ],
+      ),
+    ) ?? false;
+  }
+  
+  Future<void> _signInWithBiometric() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+    
+    try {
+      final success = await BiometricService.instance.authenticateAndLogin();
+      
+      if (success) {
+        // Auth state will be handled by the listener
+        debugPrint('Biometric login successful');
+      } else {
+        setState(() {
+          _errorMessage = 'Biometrisk login mislykkedes. Prøv igen eller brug din adgangskode.';
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Der opstod en fejl. Prøv igen.';
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _signInWithGoogle() async {

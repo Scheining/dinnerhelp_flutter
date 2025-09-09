@@ -9,6 +9,7 @@ import 'package:homechef/providers/booking_provider.dart';
 import 'package:homechef/services/dawa_address_service.dart';
 import 'package:homechef/services/stripe_service.dart';
 import 'package:homechef/services/chef_availability_service.dart';
+import 'package:homechef/services/biometric_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
@@ -460,6 +461,28 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     int paymentProcessingFee,
     int vatAmount,
   ) async {
+    // Check if biometric payment protection is enabled
+    final isPaymentProtectionEnabled = await BiometricService.instance.isPaymentProtectionEnabled();
+    if (isPaymentProtectionEnabled) {
+      final amount = (totalAmountInOre / 100).toStringAsFixed(2);
+      final authenticated = await BiometricService.instance.authenticateForPayment(
+        amount: amount,
+        currency: 'DKK',
+      );
+      
+      if (!authenticated) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Betaling afbrudt - godkendelse påkrævet'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+    }
+    
     setState(() => _isProcessing = true);
     
     try {

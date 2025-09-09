@@ -30,30 +30,83 @@ class OneSignalService {
   /// Request permission for push notifications
   Future<bool> requestPermission() async {
     try {
+      debugPrint('OneSignal: Requesting push notification permission...');
+      
+      // Request permission (true = fallback to settings if previously denied)
       final granted = await OneSignal.Notifications.requestPermission(true);
-      debugPrint('OneSignal permission request result: $granted');
+      debugPrint('OneSignal: Permission request result: $granted');
       
-      // Check if permission was actually granted
       if (granted) {
-        // Force update subscription status
+        // Force opt-in to push subscription
         OneSignal.User.pushSubscription.optIn();
-        debugPrint('OneSignal subscription opted in');
+        debugPrint('OneSignal: Push subscription opted in');
+        
+        // Wait for push token to be registered with APNs
+        await Future.delayed(const Duration(seconds: 1));
+        
+        // Verify push subscription was created
+        final isSubscribed = OneSignal.User.pushSubscription.optedIn ?? false;
+        final pushToken = OneSignal.User.pushSubscription.token;
+        final subscriptionId = OneSignal.User.pushSubscription.id;
+        
+        debugPrint('OneSignal: Push subscription status:');
+        debugPrint('  - Opted In: $isSubscribed');
+        debugPrint('  - Push Token: ${pushToken != null ? "✅ Exists" : "❌ Missing"}');
+        debugPrint('  - Subscription ID: ${subscriptionId ?? "None"}');
+        
+        // If no push token yet, try waiting a bit more
+        if (pushToken == null && isSubscribed) {
+          debugPrint('OneSignal: Waiting for push token from APNs...');
+          await Future.delayed(const Duration(seconds: 2));
+          
+          final retryToken = OneSignal.User.pushSubscription.token;
+          if (retryToken != null) {
+            debugPrint('OneSignal: ✅ Push token received after retry');
+          } else {
+            debugPrint('OneSignal: ⚠️ Push token still not available - may need app restart');
+          }
+        }
+        
+        return true;
+      } else {
+        debugPrint('OneSignal: ❌ Push permission denied by user');
+        return false;
       }
-      
-      return granted;
     } catch (e) {
-      debugPrint('OneSignal permission request failed: $e');
+      debugPrint('OneSignal: ❌ Permission request failed: $e');
       return false;
     }
   }
 
-  /// Set external user ID for user identification
+  /// Set external user ID for user identification with retry logic
   Future<void> setExternalUserId(String externalUserId) async {
-    try {
-      await OneSignal.login(externalUserId);
-      debugPrint('OneSignal external user ID set: $externalUserId');
-    } catch (e) {
-      debugPrint('OneSignal set external user ID failed: $e');
+    if (externalUserId.isEmpty) {
+      debugPrint('OneSignal: Cannot set empty external user ID');
+      return;
+    }
+    
+    int retryCount = 0;
+    const maxRetries = 3;
+    const retryDelay = Duration(seconds: 1);
+    
+    while (retryCount < maxRetries) {
+      try {
+        debugPrint('OneSignal: Attempting to set external user ID: $externalUserId (attempt ${retryCount + 1}/$maxRetries)');
+        await OneSignal.login(externalUserId);
+        debugPrint('OneSignal: ✅ External user ID set successfully: $externalUserId');
+        return; // Success, exit the function
+      } catch (e) {
+        retryCount++;
+        debugPrint('OneSignal: ❌ Set external user ID failed (attempt $retryCount/$maxRetries): $e');
+        
+        if (retryCount < maxRetries) {
+          debugPrint('OneSignal: Retrying in ${retryDelay.inSeconds} seconds...');
+          await Future.delayed(retryDelay);
+        } else {
+          debugPrint('OneSignal: ❌❌❌ Failed to set external user ID after $maxRetries attempts');
+          // Don't throw - we want the app to continue working even if OneSignal fails
+        }
+      }
     }
   }
 
@@ -171,7 +224,9 @@ class OneSignalService {
 
     // User state observer
     OneSignal.User.addObserver((state) {
-      debugPrint('OneSignal user state changed: ${state.current.onesignalId}');
+      debugPrint('OneSignal user state changed');
+      // Note: In SDK 5.x, we can't directly access onesignalId or externalId from state
+      // These properties are not exposed in the Flutter SDK
     });
 
     // Push subscription observer

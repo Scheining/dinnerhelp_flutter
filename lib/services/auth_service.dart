@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:postgrest/postgrest.dart';
 import 'package:dartz/dartz.dart';
 import 'package:homechef/core/error/failures.dart';
+import 'package:homechef/services/onesignal_sync_service.dart';
 
 class AuthService {
   final SupabaseClient _supabaseClient;
@@ -95,6 +96,16 @@ class AuthService {
         // Don't fail the signup if profile creation/update fails
       }
 
+      // CRITICAL: Sync with OneSignal after successful signup
+      // This ensures the External User ID is set for push notifications
+      try {
+        print('AuthService: Syncing new user with OneSignal...');
+        await OneSignalSyncService.syncUserWithOneSignal();
+      } catch (e) {
+        print('AuthService: Failed to sync with OneSignal (non-critical): $e');
+        // Don't fail signup if OneSignal sync fails
+      }
+
       // Add to Brevo mailing list and send welcome email via Edge Function
       try {
         final brevoResponse = await _supabaseClient.functions.invoke(
@@ -148,6 +159,16 @@ class AuthService {
 
       if (response.user == null) {
         return Left(AuthFailure('Login fejlede'));
+      }
+
+      // CRITICAL: Sync with OneSignal after successful signin
+      // This ensures the External User ID is set for push notifications
+      try {
+        print('AuthService: Syncing signed-in user with OneSignal...');
+        await OneSignalSyncService.syncUserWithOneSignal();
+      } catch (e) {
+        print('AuthService: Failed to sync with OneSignal (non-critical): $e');
+        // Don't fail signin if OneSignal sync fails
       }
 
       return Right(response.user!);
@@ -233,6 +254,16 @@ class AuthService {
             .eq('id', user.id);
       }
 
+      // CRITICAL: Sync with OneSignal after successful Google signin
+      // This ensures the External User ID is set for push notifications
+      try {
+        print('AuthService: Syncing Google-signed-in user with OneSignal...');
+        await OneSignalSyncService.syncUserWithOneSignal();
+      } catch (e) {
+        print('AuthService: Failed to sync with OneSignal (non-critical): $e');
+        // Don't fail signin if OneSignal sync fails
+      }
+
       return Right(user);
     } on AuthException catch (e) {
       return Left(AuthFailure(_mapAuthError(e.message)));
@@ -314,6 +345,16 @@ class AuthService {
             .from('profiles')
             .update({'phone_number': phone})
             .eq('id', user.id);
+      }
+
+      // CRITICAL: Sync with OneSignal after successful Apple signin
+      // This ensures the External User ID is set for push notifications
+      try {
+        print('AuthService: Syncing Apple-signed-in user with OneSignal...');
+        await OneSignalSyncService.syncUserWithOneSignal();
+      } catch (e) {
+        print('AuthService: Failed to sync with OneSignal (non-critical): $e');
+        // Don't fail signin if OneSignal sync fails
       }
 
       return Right(user);
