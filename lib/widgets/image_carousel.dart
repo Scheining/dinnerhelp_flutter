@@ -55,7 +55,7 @@ class _ImageCarouselState extends State<ImageCarousel> {
 
   void _startAutoScroll() {
     _autoScrollTimer?.cancel();
-    _autoScrollTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
+    _autoScrollTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
       if (!_isUserInteracting && 
           mounted && 
           _pageController.hasClients &&
@@ -133,12 +133,28 @@ class _ImageCarouselState extends State<ImageCarousel> {
                 itemBuilder: (context, index) {
                   final actualIndex = index % widget.items.length;
                   final item = widget.items[actualIndex];
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: CarouselCard(
-                      item: item,
-                      bucketName: widget.bucketName,
-                    ),
+                  return AnimatedBuilder(
+                    animation: _pageController,
+                    builder: (context, child) {
+                      double value = 1.0;
+                      if (_pageController.position.haveDimensions) {
+                        value = _pageController.page! - index;
+                        value = (1 - (value.abs() * 0.1)).clamp(0.0, 1.0);
+                      }
+                      return Transform.scale(
+                        scale: Curves.easeOut.transform(value),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: CarouselCard(
+                            item: item,
+                            bucketName: widget.bucketName,
+                            parallaxOffset: _pageController.position.haveDimensions
+                                ? (_pageController.page! - index).clamp(-1.0, 1.0)
+                                : 0.0,
+                          ),
+                        ),
+                      );
+                    },
                   );
                 },
               ),
@@ -158,11 +174,13 @@ class _ImageCarouselState extends State<ImageCarousel> {
 class CarouselCard extends StatelessWidget {
   final CarouselItem item;
   final String bucketName;
+  final double parallaxOffset;
 
   const CarouselCard({
     super.key,
     required this.item,
     required this.bucketName,
+    this.parallaxOffset = 0.0,
   });
 
   bool _isSvgImage(String url) {
@@ -296,7 +314,13 @@ class CarouselCard extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            _buildImageWidget(imageUrl),
+            Transform.translate(
+              offset: Offset(parallaxOffset * 50, 0),
+              child: Transform.scale(
+                scale: 1.1,
+                child: _buildImageWidget(imageUrl),
+              ),
+            ),
             Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(

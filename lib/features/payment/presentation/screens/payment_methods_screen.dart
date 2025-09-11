@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:homechef/services/stripe_service.dart';
+import 'package:homechef/services/biometric_service.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/payment_method.dart';
 import '../providers/payment_providers.dart';
@@ -19,6 +20,15 @@ class PaymentMethodsScreen extends HookConsumerWidget {
     final paymentMethodsAsync = ref.watch(savedPaymentMethodsProvider);
     final isDeleting = useState(false);
     final selectedForDefault = useState<String?>(null);
+    final paymentProtectionEnabled = useState<bool?>(null);
+    
+    // Check biometric payment protection status
+    useEffect(() {
+      BiometricService.instance.isPaymentProtectionEnabled().then((enabled) {
+        paymentProtectionEnabled.value = enabled;
+      });
+      return null;
+    }, []);
 
     return Scaffold(
       backgroundColor: theme.brightness == Brightness.dark
@@ -80,6 +90,44 @@ class PaymentMethodsScreen extends HookConsumerWidget {
                     ],
                   ),
                 ),
+                
+                // Biometric protection indicator
+                if (paymentProtectionEnabled.value == true)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    color: Colors.green.shade50,
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.fingerprint,
+                          size: 20,
+                          color: Colors.green.shade700,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Betalingsbeskyttelse aktiveret',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: Colors.green.shade700,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.of(context).pushNamed('/profile/biometric-settings');
+                          },
+                          child: Text(
+                            'Administrer',
+                            style: TextStyle(
+                              color: Colors.green.shade700,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 
                 // Cards list
                 Expanded(

@@ -11,6 +11,7 @@ import 'package:homechef/navigation/app_router.dart';
 import 'package:homechef/services/stripe_service.dart';
 import 'package:homechef/services/onesignal_service.dart';
 import 'package:homechef/services/onesignal_sync_service.dart';
+import 'package:homechef/providers/theme_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:async';
 
@@ -167,13 +168,14 @@ class _DinnerHelpAppState extends ConsumerState<DinnerHelpApp> with WidgetsBindi
   Widget build(BuildContext context) {
     final locale = ref.watch(localeNotifierProvider);
     final router = ref.watch(routerProvider);
+    final themeMode = ref.watch(themeModeProvider);
     
     return MaterialApp.router(
       title: 'DinnerHelp',
       debugShowCheckedModeBanner: false,
       theme: lightTheme,
       darkTheme: darkTheme,
-      themeMode: ThemeMode.system,
+      themeMode: themeMode,
       locale: locale,
       localizationsDelegates: const [
         AppLocalizations.delegate,

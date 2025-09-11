@@ -19,6 +19,7 @@ class MainNavigationScreen extends StatefulWidget {
 }
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
+  int _previousIndex = 0;
   
   int _getSelectedIndex(BuildContext context) {
     final String location = GoRouterState.of(context).uri.toString();
@@ -38,21 +39,32 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   }
 
   void _onItemTapped(BuildContext context, int index) {
+    final currentIndex = _getSelectedIndex(context);
+    
+    // Determine navigation direction
+    final isBackward = index < currentIndex;
+    
+    // Update previous index for next navigation
+    setState(() {
+      _previousIndex = currentIndex;
+    });
+    
+    // Navigate with direction info
     switch (index) {
       case 0:
-        context.go('/');
+        context.go('/', extra: {'isBackward': isBackward});
         break;
       case 1:
-        context.go('/search');
+        context.go('/search', extra: {'isBackward': isBackward});
         break;
       case 2:
-        context.go('/bookings');
+        context.go('/bookings', extra: {'isBackward': isBackward});
         break;
       case 3:
-        context.go('/messages');
+        context.go('/messages', extra: {'isBackward': isBackward});
         break;
       case 4:
-        context.go('/profile');
+        context.go('/profile', extra: {'isBackward': isBackward});
         break;
     }
   }
@@ -128,9 +140,15 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           notchSmoothness: NotchSmoothness.verySmoothEdge,
           background: _getSelectedBackgroundColor(context),
         ),
-        iconSize: 24, // Standardize icon size
-        height: 40, // Reduced height to minimize bottom space
-        pad: 0, // Remove padding
+        iconSize: 20, // Smaller icon size for unselected items
+        titleStyle: const TextStyle(
+          fontSize: 10, // Smaller text for navigation labels
+          fontWeight: FontWeight.w500,
+        ),
+        height: 45, // Reduced height for less bottom space
+        padTop: 2, // Minimal top padding
+        padbottom: 0, // No bottom padding
+        pad: 2, // Reduce overall padding
       ),
     );
   }

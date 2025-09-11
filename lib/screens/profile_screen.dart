@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
+import 'package:homechef/providers/theme_provider.dart';
 import 'package:homechef/providers/auth_provider.dart';
 import 'package:homechef/screens/favorite_chefs_screen.dart';
 import 'package:image_picker/image_picker.dart';
@@ -146,9 +147,39 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       context,
                       Icons.palette_outlined,
                       'Tema',
-                      'System',
+                      ref.watch(themeModeProvider.notifier).getThemeModeText(),
                       () {
-                        _showThemeDialog(context);
+                        _showThemeDialog(context, ref);
+                      },
+                    ),
+                  ],
+                ),
+                
+                const SizedBox(height: 16),
+                
+                // Security
+                _buildSection(
+                  context,
+                  'Sikkerhed',
+                  [
+                    _buildListTile(
+                      context,
+                      Icons.fingerprint,
+                      'Biometrisk sikkerhed',
+                      'Face ID, Touch ID og betalingsbeskyttelse',
+                      () {
+                        context.go('/profile/biometric-settings');
+                      },
+                    ),
+                    _buildListTile(
+                      context,
+                      Icons.lock_outline,
+                      'Skift adgangskode',
+                      'Opdater din adgangskode',
+                      () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Skift adgangskode kommer snart')),
+                        );
                       },
                     ),
                   ],
@@ -581,32 +612,66 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  void _showThemeDialog(BuildContext context) {
+  void _showThemeDialog(BuildContext context, WidgetRef ref) {
+    final currentThemeMode = ref.read(themeModeProvider);
+    
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Vælg tema'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(
+            RadioListTile<ThemeMode>(
               title: const Text('System'),
-              leading: const Icon(Icons.settings),
-              selected: true,
-              onTap: () => Navigator.of(context).pop(),
+              secondary: const Icon(Icons.settings),
+              value: ThemeMode.system,
+              groupValue: currentThemeMode,
+              onChanged: (value) async {
+                if (value != null) {
+                  await ref.read(themeModeProvider.notifier).setThemeMode(value);
+                  if (dialogContext.mounted) {
+                    Navigator.of(dialogContext).pop();
+                  }
+                }
+              },
             ),
-            ListTile(
+            RadioListTile<ThemeMode>(
               title: const Text('Lys'),
-              leading: const Icon(Icons.light_mode),
-              onTap: () => Navigator.of(context).pop(),
+              secondary: const Icon(Icons.light_mode),
+              value: ThemeMode.light,
+              groupValue: currentThemeMode,
+              onChanged: (value) async {
+                if (value != null) {
+                  await ref.read(themeModeProvider.notifier).setThemeMode(value);
+                  if (dialogContext.mounted) {
+                    Navigator.of(dialogContext).pop();
+                  }
+                }
+              },
             ),
-            ListTile(
+            RadioListTile<ThemeMode>(
               title: const Text('Mørk'),
-              leading: const Icon(Icons.dark_mode),
-              onTap: () => Navigator.of(context).pop(),
+              secondary: const Icon(Icons.dark_mode),
+              value: ThemeMode.dark,
+              groupValue: currentThemeMode,
+              onChanged: (value) async {
+                if (value != null) {
+                  await ref.read(themeModeProvider.notifier).setThemeMode(value);
+                  if (dialogContext.mounted) {
+                    Navigator.of(dialogContext).pop();
+                  }
+                }
+              },
             ),
           ],
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Annuller'),
+          ),
+        ],
       ),
     );
   }

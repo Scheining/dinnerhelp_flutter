@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:homechef/core/localization/app_localizations_extension.dart';
 import 'package:homechef/core/constants/spacing.dart';
@@ -21,6 +22,7 @@ import 'package:homechef/features/search/presentation/providers/search_providers
 import 'package:homechef/features/search/domain/entities/chef_search_result.dart';
 import 'package:homechef/providers/favorites_provider.dart';
 import 'package:homechef/providers/notification_provider.dart';
+import 'package:homechef/widgets/skeleton_loader.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -29,18 +31,50 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStateMixin {
   final List<Cuisine> _cuisines = Cuisine.getAllCuisines();
   String? _selectedCuisine;
   Future<List<CarouselItem>>? _carouselItemsFuture;
   final ScrollController _scrollController = ScrollController();
   double _scrollOffset = 0.0;
   final GlobalKey _cuisineKey = GlobalKey();
+  bool _showScrollToTop = false;
+  late AnimationController _fabAnimationController;
+  late Animation<double> _fabScaleAnimation;
 
   @override
   void initState() {
     super.initState();
     _carouselItemsFuture = CarouselService.fetchCarouselItemsFromStorage();
+    
+    // Initialize FAB animation
+    _fabAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+    _fabScaleAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _fabAnimationController,
+      curve: Curves.easeOutBack,
+    ));
+    
+    // Listen to scroll position for FAB visibility
+    _scrollController.addListener(() {
+      final shouldShow = _scrollController.offset > 500;
+      if (shouldShow != _showScrollToTop) {
+        setState(() {
+          _showScrollToTop = shouldShow;
+        });
+        if (shouldShow) {
+          _fabAnimationController.forward();
+        } else {
+          _fabAnimationController.reverse();
+        }
+      }
+    });
+    
     // Request location on app start
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _requestInitialLocation();
@@ -63,6 +97,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void dispose() {
     _scrollController.dispose();
+    _fabAnimationController.dispose();
     super.dispose();
   }
 
@@ -82,36 +117,49 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          NotificationListener<ScrollNotification>(
-            onNotification: (ScrollNotification notification) {
-              if (notification is ScrollUpdateNotification) {
-                setState(() {
-                  _scrollOffset = notification.metrics.pixels;
-                });
-              }
-              return false;
-            },
-            child: CustomScrollView(
-              controller: _scrollController,
-              slivers: [
+          RefreshIndicator(
+            onRefresh: _handleRefresh,
+            color: theme.colorScheme.primary,
+            backgroundColor: theme.scaffoldBackgroundColor,
+            displacement: 80,
+            child: NotificationListener<ScrollNotification>(
+              onNotification: (ScrollNotification notification) {
+                if (notification is ScrollUpdateNotification) {
+                  setState(() {
+                    _scrollOffset = notification.metrics.pixels;
+                  });
+                }
+                return false;
+              },
+              child: CustomScrollView(
+                controller: _scrollController,
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
               // Sticky app bar with location selector
               SliverAppBar(
                 pinned: true,
                 floating: false,
-                toolbarHeight: 60,
-                backgroundColor: Theme.of(context).brightness == Brightness.dark
-                    ? Theme.of(context).appBarTheme.backgroundColor
-                    : Colors.white,
+                toolbarHeight: 50,
+                backgroundColor: Theme.of(context).scaffoldBackgroundColor,
                 surfaceTintColor: Colors.transparent,
                 scrolledUnderElevation: 0,
                 elevation: 0,
                 forceElevated: false,
-                title: Row(
-                  children: [
-                    const Expanded(child: LocationSelector()),
-                    const SizedBox(width: 12),
-                    GestureDetector(
+                leadingWidth: 200,
+                automaticallyImplyLeading: false,
+                leading: Padding(
+                  padding: const EdgeInsets.only(left: 16),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: LocationSelector(),
+                  ),
+                ),
+                actions: [
+                  Padding(
+                    padding: const EdgeInsets.only(right: 16),
+                    child: GestureDetector(
                       onTap: () {
+                        HapticFeedback.lightImpact();
                         // Navigate to notifications screen
                         Navigator.push(
                           context,
@@ -177,12 +225,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ],
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
               
-              // Add spacing between location bar and cuisine selector
-              SliverToBoxAdapter(child: SizedBox(height: 16)),
+              // Small spacing for visual separation
+              SliverToBoxAdapter(child: SizedBox(height: 8)),
               
               // Main cuisine selector (scrolls normally)
               SliverToBoxAdapter(
@@ -199,6 +247,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         cuisine: cuisine,
                         isSelected: _selectedCuisine == cuisine.name,
                         onTap: () {
+                          HapticFeedback.lightImpact();
                           setState(() {
                             _selectedCuisine = _selectedCuisine == cuisine.name
                                 ? null
@@ -292,7 +341,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
                 return ImageCarousel(
                   items: carouselItems,
-                  height: 200,
+                  height: 225,
                   bucketName: 'marketing',
                 );
               },
@@ -307,7 +356,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 children: [
                   Text(
                     context.l10n.featuredChefs,
-                    style: theme.textTheme.titleLarge?.copyWith(
+                    style: theme.textTheme.bodyLarge?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -352,25 +401,57 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     itemCount: filteredChefs.length,
                     itemBuilder: (context, index) {
                       final chef = filteredChefs[index];
-                      return FeaturedChefCard(
-                        chef: chef,
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ChefProfileScreen(chef: chef),
-                            ),
-                          );
-                        },
+                      return Hero(
+                        tag: 'chef-featured-${chef.id}',
+                        child: Material(
+                          type: MaterialType.transparency,
+                          child: FeaturedChefCard(
+                            chef: chef,
+                            onTap: () {
+                              HapticFeedback.selectionClick();
+                              Navigator.push(
+                                context,
+                                PageRouteBuilder(
+                                  pageBuilder: (context, animation, secondaryAnimation) =>
+                                      ChefProfileScreen(chef: chef),
+                                  transitionDuration: const Duration(milliseconds: 300),
+                                  transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                                    const begin = Offset(1.0, 0.0);
+                                    const end = Offset.zero;
+                                    const curve = Curves.easeOutCubic;
+                                    var tween = Tween(begin: begin, end: end).chain(
+                                      CurveTween(curve: curve),
+                                    );
+                                    return SlideTransition(
+                                      position: animation.drive(tween),
+                                      child: child,
+                                    );
+                                  },
+                                ),
+                              );
+                            },
+                          ),
+                        ),
                       );
                     },
                   ),
                 );
               },
-              loading: () => Container(
+              loading: () => SizedBox(
                 height: 200,
-                padding: AppSpacing.sectionPadding,
-                child: const Center(child: CircularProgressIndicator()),
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: AppSpacing.sectionPadding,
+                  itemCount: 3,
+                  itemBuilder: (context, index) {
+                    return const SkeletonLoader(
+                      width: 180,
+                      height: 200,
+                      borderRadius: BorderRadius.all(Radius.circular(12)),
+                      margin: EdgeInsets.only(right: 16),
+                    );
+                  },
+                ),
               ),
               error: (error, stack) => Container(
                 height: 200,
@@ -396,7 +477,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   Expanded(
                     child: Text(
                       'Ledige nu',
-                      style: theme.textTheme.titleLarge?.copyWith(
+                      style: theme.textTheme.bodyLarge?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
                       overflow: TextOverflow.ellipsis,
@@ -442,7 +523,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   Expanded(
                     child: Text(
                       'Ledige denne uge',
-                      style: theme.textTheme.titleLarge?.copyWith(
+                      style: theme.textTheme.bodyLarge?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
                       overflow: TextOverflow.ellipsis,
@@ -486,7 +567,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   Expanded(
                     child: Text(
                       'Topbedømte ledige kokke',
-                      style: theme.textTheme.titleLarge?.copyWith(
+                      style: theme.textTheme.bodyLarge?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
                       overflow: TextOverflow.ellipsis,
@@ -532,7 +613,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 children: [
                   Text(
                     'Nyeste retter',
-                    style: theme.textTheme.titleLarge?.copyWith(
+                    style: theme.textTheme.bodyLarge?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -586,10 +667,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                 );
               },
-              loading: () => Container(
-                height: 280,
-                padding: AppSpacing.sectionPadding,
-                child: const Center(child: CircularProgressIndicator()),
+              loading: () => SizedBox(
+                height: 320,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: AppSpacing.sectionPadding,
+                  itemCount: 3,
+                  itemBuilder: (context, index) {
+                    return const DishCardSkeleton();
+                  },
+                ),
               ),
               error: (error, stack) => Container(
                 height: 280,
@@ -614,7 +701,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 children: [
                   Text(
                     'Populære retter',
-                    style: theme.textTheme.titleLarge?.copyWith(
+                    style: theme.textTheme.bodyLarge?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -668,10 +755,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                 );
               },
-              loading: () => Container(
-                height: 280,
-                padding: AppSpacing.sectionPadding,
-                child: const Center(child: CircularProgressIndicator()),
+              loading: () => SizedBox(
+                height: 320,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: AppSpacing.sectionPadding,
+                  itemCount: 3,
+                  itemBuilder: (context, index) {
+                    return const DishCardSkeleton();
+                  },
+                ),
               ),
               error: (error, stack) => Container(
                 height: 280,
@@ -696,7 +789,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 children: [
                   Text(
                     'Mest bestilte retter',
-                    style: theme.textTheme.titleLarge?.copyWith(
+                    style: theme.textTheme.bodyLarge?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -750,10 +843,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                 );
               },
-              loading: () => Container(
-                height: 280,
-                padding: AppSpacing.sectionPadding,
-                child: const Center(child: CircularProgressIndicator()),
+              loading: () => SizedBox(
+                height: 320,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: AppSpacing.sectionPadding,
+                  itemCount: 3,
+                  itemBuilder: (context, index) {
+                    return const DishCardSkeleton();
+                  },
+                ),
               ),
               error: (error, stack) => Container(
                 height: 280,
@@ -769,39 +868,94 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
           
           const SliverToBoxAdapter(child: SizedBox(height: 100)), // Bottom navigation padding
-              ],
+                ],
+              ),
             ),
           ),
           
-          // Animated condensed cuisine selector overlay (directly attached to app bar)
+          // Animated condensed cuisine selector overlay (positioned below app bar)
           Positioned(
-            top: MediaQuery.of(context).padding.top + 59.5, // Slight overlap to prevent gap
+            top: MediaQuery.of(context).padding.top + 50, // Position below 50px app bar
             left: 0,
             right: 0,
             child: _buildAnimatedCuisineSelector(),
           ),
         ],
       ),
+      floatingActionButton: _showScrollToTop
+          ? ScaleTransition(
+              scale: _fabScaleAnimation,
+              child: FloatingActionButton(
+                mini: true,
+                onPressed: _scrollToTop,
+                backgroundColor: theme.colorScheme.primary,
+                child: const Icon(Icons.arrow_upward, size: 20),
+              ),
+            )
+          : null,
+    );
+  }
+  
+  Future<void> _handleRefresh() async {
+    // Refresh all providers
+    ref.invalidate(featuredChefsProvider);
+    ref.invalidate(availableNowChefsProvider);
+    ref.invalidate(availableThisWeekChefsProvider);
+    ref.invalidate(topRatedAvailableChefsProvider);
+    ref.invalidate(newestDishesProvider);
+    ref.invalidate(popularDishesProvider);
+    ref.invalidate(mostOrderedDishesProvider);
+    
+    // Refresh carousel
+    setState(() {
+      _carouselItemsFuture = CarouselService.fetchCarouselItemsFromStorage();
+    });
+    
+    // Add a small delay for better UX
+    await Future.delayed(const Duration(milliseconds: 500));
+  }
+  
+  void _scrollToTop() {
+    HapticFeedback.mediumImpact();
+    _scrollController.animateTo(
+      0,
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeOutCubic,
     );
   }
   
   Widget _buildAnimatedCuisineSelector() {
+    // Early return if widget is not mounted
+    if (!mounted) {
+      return const SizedBox.shrink();
+    }
+    
     // Calculate the actual position of the cuisine selector
     double progress = 0.0;
     
     if (_cuisineKey.currentContext != null) {
-      final RenderBox? renderBox = _cuisineKey.currentContext!.findRenderObject() as RenderBox?;
-      if (renderBox != null) {
-        final position = renderBox.localToGlobal(Offset.zero);
-        final appBarHeight = 60 + MediaQuery.of(context).padding.top;
-        
-        // Start showing when the cuisine selector is about to go under the app bar
-        final triggerPoint = appBarHeight;
-        
-        if (position.dy < triggerPoint) {
-          // Calculate progress based on how much the selector has scrolled under
-          progress = ((triggerPoint - position.dy) / 50).clamp(0.0, 1.0);
+      try {
+        final RenderBox? renderBox = _cuisineKey.currentContext!.findRenderObject() as RenderBox?;
+        if (renderBox != null && renderBox.hasSize && renderBox.attached) {
+          final position = renderBox.localToGlobal(Offset.zero);
+          final statusBarHeight = MediaQuery.of(context).padding.top;
+          final appBarBottom = statusBarHeight + 50; // Bottom edge of app bar
+          
+          // The cuisine selector initially sits at appBarBottom + 8px
+          // Only show condensed selector when BIG icons are COMPLETELY hidden
+          // Check when the BOTTOM of the 120px tall selector goes under the app bar
+          final selectorHeight = 120.0; // Height of the big cuisine selector
+          final selectorBottom = position.dy + selectorHeight;
+          final triggerPoint = appBarBottom;
+          
+          if (selectorBottom < triggerPoint) {
+            // Quick transition over 20px for instant switch effect
+            progress = ((triggerPoint - selectorBottom) / 20).clamp(0.0, 1.0);
+          }
         }
+      } catch (e) {
+        // If there's any error accessing the RenderBox, just return empty
+        return const SizedBox.shrink();
       }
     }
     
@@ -809,31 +963,36 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       return const SizedBox.shrink();
     }
     
-    return Transform.translate(
-      offset: Offset(0, -50 * (1 - progress)), // Slide down from top
-      child: Container(
-        height: 50,
-        decoration: BoxDecoration(
-          color: Theme.of(context).brightness == Brightness.dark
-              ? Theme.of(context).appBarTheme.backgroundColor
-              : Colors.white,
-          border: Border(
-            top: BorderSide(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Theme.of(context).appBarTheme.backgroundColor ?? const Color(0xFF282D2E)
-                  : Colors.white,
-              width: 1,
+    return SizedBox(
+      height: 45,
+      child: ClipRect(
+        child: Transform.translate(
+          // Start at -30px (hidden above) and slide DOWN to 0px (final position)
+          offset: Offset(0, -30 * (1 - progress)), // Slide DOWN from above, final position 0px
+          child: Opacity(
+            opacity: progress,
+            child: Container(
+              height: 45,
+              decoration: BoxDecoration(
+                color: Theme.of(context).scaffoldBackgroundColor,
+                border: Border(
+                  top: BorderSide(
+                    color: Theme.of(context).scaffoldBackgroundColor,
+                    width: 1,
+                  ),
+                ),
+              ),
+              child: CondensedCuisineSelector(
+                cuisines: _cuisines,
+                selectedCuisine: _selectedCuisine,
+                onCuisineSelected: (cuisine) {
+                  setState(() {
+                    _selectedCuisine = cuisine;
+                  });
+                },
+              ),
             ),
           ),
-        ),
-        child: CondensedCuisineSelector(
-          cuisines: _cuisines,
-          selectedCuisine: _selectedCuisine,
-          onCuisineSelected: (cuisine) {
-            setState(() {
-              _selectedCuisine = cuisine;
-            });
-          },
         ),
       ),
     );
@@ -888,25 +1047,52 @@ class _AvailabilitySection extends ConsumerWidget {
             itemCount: filteredResults.length,
             itemBuilder: (context, index) {
               final result = filteredResults[index];
-              return _AvailabilityChefCard(
-                result: result,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ChefProfileScreen(chef: result.chef),
-                    ),
-                  );
-                },
+              return Hero(
+                tag: 'chef-availability-${result.chef.id}',
+                child: Material(
+                  type: MaterialType.transparency,
+                  child: _AvailabilityChefCard(
+                    result: result,
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      Navigator.push(
+                        context,
+                        PageRouteBuilder(
+                          pageBuilder: (context, animation, secondaryAnimation) =>
+                              ChefProfileScreen(chef: result.chef),
+                          transitionDuration: const Duration(milliseconds: 300),
+                          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                            const begin = Offset(1.0, 0.0);
+                            const end = Offset.zero;
+                            const curve = Curves.easeOutCubic;
+                            var tween = Tween(begin: begin, end: end).chain(
+                              CurveTween(curve: curve),
+                            );
+                            return SlideTransition(
+                              position: animation.drive(tween),
+                              child: child,
+                            );
+                          },
+                        ),
+                      );
+                    },
+                  ),
+                ),
               );
             },
           ),
         );
       },
-      loading: () => Container(
+      loading: () => SizedBox(
         height: height,
-        padding: AppSpacing.sectionPadding,
-        child: const Center(child: CircularProgressIndicator()),
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          padding: AppSpacing.sectionPadding,
+          itemCount: 3,
+          itemBuilder: (context, index) {
+            return const ChefCardSkeleton();
+          },
+        ),
       ),
       error: (error, stack) => Container(
         height: height,
@@ -1050,10 +1236,27 @@ class _AvailabilityChefCard extends ConsumerWidget {
     return Container(
       width: 330, // Increased by 50%
       margin: const EdgeInsets.only(right: 16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: theme.brightness == Brightness.dark
+                ? Colors.black.withValues(alpha: 0.3)
+                : Colors.black.withValues(alpha: 0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+            spreadRadius: -5,
+          ),
+        ],
+      ),
       child: Card(
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1062,24 +1265,76 @@ class _AvailabilityChefCard extends ConsumerWidget {
                 clipBehavior: Clip.none, // Allow profile image to overflow
                 children: [
                   ClipRRect(
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                    child: Image.network(
-                      result.chef.headerImage,
-                      width: double.infinity,
-                      height: 180, // Increased by 50%
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        width: double.infinity,
-                        height: 180, // Increased by 50%
-                        decoration: const BoxDecoration(
-                          image: DecorationImage(
-                            image: AssetImage('assets/images/logo_brand.png'),
-                            fit: BoxFit.cover,
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                    child: Stack(
+                      children: [
+                        Image.network(
+                          result.chef.headerImage,
+                          width: double.infinity,
+                          height: 180, // Increased by 50%
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => Container(
+                            width: double.infinity,
+                            height: 180, // Increased by 50%
+                            decoration: const BoxDecoration(
+                              image: DecorationImage(
+                                image: AssetImage('assets/images/logo_brand.png'),
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
+                        ),
+                        // Gradient overlay for better text readability
+                        Positioned(
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          height: 60,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.bottomCenter,
+                                end: Alignment.topCenter,
+                                colors: [
+                                  Colors.black.withValues(alpha: 0.3),
+                                  Colors.transparent,
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  // NY badge in top left for new chefs
+                  if (result.chef.reviewCount == 0)
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF4CAF50), // Material green
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.2),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: const Text(
+                          'NY',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
                     ),
-                  ),
                   
                   // Top right controls - availability and favorite
                   Positioned(
@@ -1089,30 +1344,50 @@ class _AvailabilityChefCard extends ConsumerWidget {
                       children: [
                         // Availability indicator
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
                             color: result.isAvailable 
-                                ? Colors.green.shade600
-                                : Colors.orange.shade600,
+                                ? Colors.green.shade600.withValues(alpha: 0.9)
+                                : Colors.orange.shade600.withValues(alpha: 0.9),
                             borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.2),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
-                          child: Text(
-                            result.isAvailable ? 'Ledig' : 'Optaget',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                            ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                result.isAvailable ? Icons.check_circle : Icons.schedule,
+                                size: 12,
+                                color: Colors.white,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                result.isAvailable ? 'Ledig' : 'Optaget',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                         const SizedBox(width: 8),
                         // Favorite button
                         Material(
-                          color: Colors.white,
+                          color: Colors.white.withValues(alpha: 0.95),
                           borderRadius: BorderRadius.circular(20),
+                          elevation: 2,
                           child: InkWell(
                             borderRadius: BorderRadius.circular(20),
                             onTap: () async {
+                              HapticFeedback.lightImpact();
                               final notifier = ref.read(favoritesChefsProvider.notifier);
                               await notifier.toggleFavorite(result.chef.id);
                             },
@@ -1240,7 +1515,7 @@ class _AvailabilityChefCard extends ConsumerWidget {
                       
                       const SizedBox(height: 8), // Added spacing before bottom row
                       
-                      // Bottom row with rating/badge and cuisines
+                      // Bottom row with rating and cuisines
                       Row(
                         children: [
                           if (result.chef.reviewCount > 0) ...[
@@ -1259,24 +1534,8 @@ class _AvailabilityChefCard extends ConsumerWidget {
                                     : theme.colorScheme.onSurface,
                               ),
                             ),
-                          ] else
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF4CAF50), // Material green
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Text(
-                                'NY',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          
-                          const SizedBox(width: 12), // Increased spacing
+                            const SizedBox(width: 12), // Increased spacing
+                          ],
                           
                           // Cuisine types as badges
                           Expanded(

@@ -424,44 +424,15 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                           if (index == 0) {
                             // Results count header
                             return Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                              child: Row(
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      '${results.length} kokke fundet',
-                                      style: theme.textTheme.bodyMedium?.copyWith(
-                                        color: theme.brightness == Brightness.dark 
-                                            ? Colors.grey.shade400 
-                                            : Colors.grey.shade600,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Flexible(
-                                    child: DropdownButton<String>(
-                                      value: currentFilters.sortBy,
-                                      underline: const SizedBox(),
-                                      isExpanded: false,
-                                      isDense: true,
-                                      style: theme.textTheme.bodySmall?.copyWith(
-                                        color: theme.colorScheme.primary,
-                                      ),
-                                      items: const [
-                                        DropdownMenuItem(value: 'rating', child: Text('Bedømmelse')),
-                                        DropdownMenuItem(value: 'distance', child: Text('Afstand')),
-                                        DropdownMenuItem(value: 'price', child: Text('Pris')),
-                                        DropdownMenuItem(value: 'availability', child: Text('Tilgængelig')),
-                                      ],
-                                      onChanged: (value) {
-                                        if (value != null) {
-                                          ref.read(searchFiltersProvider.notifier).updateSorting(value, false);
-                                        }
-                                      },
-                                    ),
-                                  ),
-                                ],
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              child: Text(
+                                '${results.length} kokke fundet',
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: theme.brightness == Brightness.dark 
+                                      ? Colors.grey.shade400 
+                                      : Colors.grey.shade600,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             );
                           }
@@ -553,24 +524,34 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 
   Widget _buildAnimatedCuisineSelector() {
+    // Early return if widget is not mounted
+    if (!mounted) {
+      return const SizedBox.shrink();
+    }
+    
     final currentFilters = ref.watch(searchFiltersProvider);
     
     // Calculate the actual position of the cuisine selector
     double progress = 0.0;
     
     if (_cuisineKey.currentContext != null) {
-      final RenderBox? renderBox = _cuisineKey.currentContext!.findRenderObject() as RenderBox?;
-      if (renderBox != null) {
-        final position = renderBox.localToGlobal(Offset.zero);
-        final appBarHeight = 60 + MediaQuery.of(context).padding.top;
-        
-        // Start showing when the cuisine selector is about to go under the app bar
-        final triggerPoint = appBarHeight;
-        
-        if (position.dy < triggerPoint) {
-          // Calculate progress based on how much the selector has scrolled under
-          progress = ((triggerPoint - position.dy) / 50).clamp(0.0, 1.0);
+      try {
+        final RenderBox? renderBox = _cuisineKey.currentContext!.findRenderObject() as RenderBox?;
+        if (renderBox != null && renderBox.hasSize && renderBox.attached) {
+          final position = renderBox.localToGlobal(Offset.zero);
+          final appBarHeight = 60 + MediaQuery.of(context).padding.top;
+          
+          // Start showing when the cuisine selector is about to go under the app bar
+          final triggerPoint = appBarHeight;
+          
+          if (position.dy < triggerPoint) {
+            // Calculate progress based on how much the selector has scrolled under
+            progress = ((triggerPoint - position.dy) / 50).clamp(0.0, 1.0);
+          }
         }
+      } catch (e) {
+        // If there's any error accessing the RenderBox, just return empty
+        return const SizedBox.shrink();
       }
     }
     
@@ -578,21 +559,29 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       return const SizedBox.shrink();
     }
     
-    return Transform.translate(
-      offset: Offset(0, -50 * (1 - progress)), // Slide down from top
-      child: Container(
-        height: 50,
-        decoration: BoxDecoration(
-          color: Theme.of(context).brightness == Brightness.dark
-              ? Theme.of(context).appBarTheme.backgroundColor
-              : Colors.white,
-        ),
-        child: CondensedCuisineSelector(
-          cuisines: _cuisines,
-          selectedCuisine: currentFilters.cuisineTypes?.isNotEmpty == true 
-              ? currentFilters.cuisineTypes!.first 
-              : null,
-          onCuisineSelected: _updateCuisineFilter,
+    return SizedBox(
+      height: 50,
+      child: ClipRect(
+        child: Transform.translate(
+          offset: Offset(0, -50 * (1 - progress)), // Slide down from top
+          child: Opacity(
+            opacity: progress,
+            child: Container(
+              height: 50,
+              decoration: BoxDecoration(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Theme.of(context).appBarTheme.backgroundColor
+                    : Colors.white,
+              ),
+              child: CondensedCuisineSelector(
+                cuisines: _cuisines,
+                selectedCuisine: currentFilters.cuisineTypes?.isNotEmpty == true 
+                    ? currentFilters.cuisineTypes!.first 
+                    : null,
+                onCuisineSelected: _updateCuisineFilter,
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -799,6 +788,35 @@ class _AvailabilityChefCard extends ConsumerWidget {
                           ),
                   ),
                   
+                  // NY badge in top left for new chefs
+                  if (result.chef.reviewCount == 0)
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF4CAF50), // Material green
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: const Text(
+                          'NY',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  
                   // Top right controls - availability and favorite
                   Positioned(
                     top: 8,
@@ -968,7 +986,7 @@ class _AvailabilityChefCard extends ConsumerWidget {
                     
                     const SizedBox(height: 12),
                     
-                    // Bottom row with rating/badge and cuisines
+                    // Bottom row with rating and cuisines
                     Row(
                       children: [
                         if (result.chef.reviewCount > 0) ...[
@@ -987,24 +1005,8 @@ class _AvailabilityChefCard extends ConsumerWidget {
                                   : null,
                             ),
                           ),
-                        ] else
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF4CAF50), // Material green
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Text(
-                              'NY',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        
-                        const SizedBox(width: 12), // Increased spacing
+                          const SizedBox(width: 12), // Increased spacing
+                        ],
                         
                         // Cuisine types as badges
                         Expanded(

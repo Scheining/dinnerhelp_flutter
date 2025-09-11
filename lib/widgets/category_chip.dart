@@ -13,54 +13,54 @@ class CategoryChip extends StatelessWidget {
     required this.onTap,
   });
 
-  // Define gradient colors for each cuisine type with transparency
+  // Define gradient colors for each cuisine type
   List<Color> _getGradientColors(String cuisineId) {
     switch (cuisineId) {
       case 'nordic':
         return [
-          const Color(0xFF6B4226).withOpacity(0.4),
-          const Color(0xFF8B5A3C).withOpacity(0.4)
-        ]; // Brown gradient
+          const Color(0xFF8D6E63),
+          const Color(0xFFA1887F)
+        ]; // Muted brown gradient
       case 'italian':
         return [
-          const Color(0xFF1B4A3A).withOpacity(0.4),
-          const Color(0xFF2D6B4F).withOpacity(0.4)
-        ]; // Dark green gradient
+          const Color(0xFF558B6E),
+          const Color(0xFF6FA287)
+        ]; // Muted teal-green gradient
       case 'asian':
         return [
-          const Color(0xFF1A4B6B).withOpacity(0.4),
-          const Color(0xFF2980B9).withOpacity(0.4)
-        ]; // Blue gradient
+          const Color(0xFF5788A3),
+          const Color(0xFF6FA3BD)
+        ]; // Muted blue-teal gradient
       case 'french':
         return [
-          const Color(0xFF6B4A7C).withOpacity(0.4),
-          const Color(0xFF8E44AD).withOpacity(0.4)
-        ]; // Purple gradient
+          const Color(0xFF7B68A6),
+          const Color(0xFF9583BD)
+        ]; // Muted purple gradient
       case 'mediterranean':
         return [
-          const Color(0xFF6B7A26).withOpacity(0.4),
-          const Color(0xFF8D9A42).withOpacity(0.4)
-        ]; // Olive gradient
+          const Color(0xFF829B6B),
+          const Color(0xFF9BB185)
+        ]; // Muted olive gradient
       case 'seafood':
         return [
-          const Color(0xFF2E8B8B).withOpacity(0.4),
-          const Color(0xFF4ECDC4).withOpacity(0.4)
+          const Color(0xFF4FA5A5),
+          const Color(0xFF6FBDBD)
         ]; // Teal gradient
       case 'vegetarian':
         return [
-          const Color(0xFF4A7C59).withOpacity(0.4),
-          const Color(0xFF5D8E6A).withOpacity(0.4)
-        ]; // Green gradient
+          const Color(0xFF6B9B7E),
+          const Color(0xFF85B398)
+        ]; // Muted sage green gradient
       case 'danish':
         return [
-          const Color(0xFF8B5A3C).withOpacity(0.4),
-          const Color(0xFFA0724C).withOpacity(0.4)
-        ]; // Light brown gradient
+          const Color(0xFFAB8A71),
+          const Color(0xFFC4A68B)
+        ]; // Muted caramel gradient
       default:
         return [
-          const Color(0xFF6B4226).withOpacity(0.4),
-          const Color(0xFF8B5A3C).withOpacity(0.4)
-        ]; // Default brown
+          const Color(0xFF8D6E63),
+          const Color(0xFFA1887F)
+        ]; // Default muted brown
     }
   }
 
@@ -79,7 +79,6 @@ class CategoryChip extends StatelessWidget {
               width: 70,
               height: 70,
               decoration: BoxDecoration(
-                color: Colors.transparent,
                 gradient: LinearGradient(
                   colors: gradientColors,
                   begin: Alignment.topLeft,
@@ -115,8 +114,8 @@ class CategoryChip extends StatelessWidget {
                     : cuisine.nameEn,
                 style: theme.textTheme.labelMedium?.copyWith(
                   color: theme.colorScheme.onSurface,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 10,
                 ),
                 textAlign: TextAlign.center,
                 maxLines: 1,

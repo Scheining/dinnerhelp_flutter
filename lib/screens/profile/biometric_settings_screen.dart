@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:homechef/services/biometric_service.dart';
-import 'package:homechef/l10n/app_localizations.dart';
 
 class BiometricSettingsScreen extends ConsumerStatefulWidget {
   const BiometricSettingsScreen({super.key});
@@ -43,11 +42,10 @@ class _BiometricSettingsScreenState extends ConsumerState<BiometricSettingsScree
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context);
     
     return Scaffold(
       appBar: AppBar(
-        title: Text(l10n?.biometricSettings ?? 'Biometriske indstillinger'),
+        title: const Text('Biometriske indstillinger'),
         backgroundColor: theme.colorScheme.surface,
       ),
       body: _isLoading

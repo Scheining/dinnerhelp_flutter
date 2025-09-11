@@ -13,92 +13,80 @@ class LocationSelector extends ConsumerWidget {
     final locationState = ref.watch(locationNotifierProvider);
     final canAccess = ref.watch(canAccessLocationProvider);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.light
-            ? Colors.white
-            : Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: GestureDetector(
-        onTap: () => _handleLocationTap(context, ref),
-        child: Row(
+    return GestureDetector(
+      onTap: () => _handleLocationTap(context, ref),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 30,
-            height: 30,
-            decoration: BoxDecoration(
-              color: Theme.of(context).brightness == Brightness.light
-                  ? Colors.grey.shade200
-                  : Colors.grey.shade800,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              locationState.isLoading 
-                ? Icons.gps_not_fixed 
-                : Icons.location_on,
-              color: Theme.of(context).colorScheme.primary,
-              size: 16,
-            ),
+          Icon(
+            Icons.location_on,
+            color: Theme.of(context).colorScheme.primary,
+            size: 20,
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: locationState.when(
-              data: (location) => _buildLocationDisplay(
-                context, 
-                location?.address ?? AppLocalizations.of(context)!.selectLocation,
-                hasLocation: location != null,
-              ),
-              loading: () => _buildLoadingDisplay(context),
-              error: (error, _) => _buildErrorDisplay(context, error),
+          const SizedBox(width: 6),
+          locationState.when(
+            data: (location) => _buildLocationDisplay(
+              context, 
+              _extractCityName(location?.address ?? AppLocalizations.of(context)!.selectLocation),
+              hasLocation: location != null,
             ),
+            loading: () => _buildLoadingDisplay(context),
+            error: (error, _) => _buildErrorDisplay(context, error),
           ),
+          const SizedBox(width: 4),
           Icon(
             Icons.keyboard_arrow_down,
             color: Theme.of(context).colorScheme.onSurface,
-            size: 16,
+            size: 20,
           ),
         ],
       ),
-      ),
     );
+  }
+  
+  String _extractCityName(String address) {
+    // Extract city name from address
+    // Common Danish address format: "Street, PostalCode City"
+    final parts = address.split(',');
+    if (parts.length > 1) {
+      // Try to get the city from the last part
+      final lastPart = parts.last.trim();
+      // Remove postal code if present (4 digits in Denmark)
+      final cityMatch = RegExp(r'\d{4}\s+(.+)').firstMatch(lastPart);
+      if (cityMatch != null) {
+        return cityMatch.group(1) ?? address;
+      }
+      // If no postal code, might be just the city
+      if (!RegExp(r'^\d').hasMatch(lastPart)) {
+        return lastPart;
+      }
+    }
+    // Fallback to full address if can't extract city
+    return address;
   }
 
   Widget _buildLocationDisplay(BuildContext context, String address, {required bool hasLocation}) {
     return Text(
       address,
-      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+      style: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
         color: hasLocation 
-            ? Theme.of(context).colorScheme.onSurface
-            : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+            ? (Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87)
+            : (Theme.of(context).brightness == Brightness.dark ? Colors.white60 : Colors.black54),
       ),
       overflow: TextOverflow.ellipsis,
     );
   }
 
   Widget _buildLoadingDisplay(BuildContext context) {
-    return Row(
-      children: [
-        SizedBox(
-          width: 12,
-          height: 12,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            valueColor: AlwaysStoppedAnimation<Color>(
-              Theme.of(context).colorScheme.primary,
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          AppLocalizations.of(context)!.gettingLocation,
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-            fontSize: 14,
-          ),
-        ),
-      ],
+    return Text(
+      AppLocalizations.of(context)!.gettingLocation,
+      style: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+        color: Theme.of(context).brightness == Brightness.dark ? Colors.white60 : Colors.black54,
+      ),
     );
   }
 
@@ -125,8 +113,9 @@ class LocationSelector extends ConsumerWidget {
     return Text(
       errorText,
       style: TextStyle(
-        color: Colors.red.shade300,
+        color: Colors.red.shade400,
         fontSize: 14,
+        fontWeight: FontWeight.w500,
       ),
     );
   }

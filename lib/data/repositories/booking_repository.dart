@@ -494,6 +494,125 @@ class BookingRepository {
     );
   }
 
+  // Submit user review for a booking
+  Future<void> submitUserReview({
+    required String bookingId,
+    required int rating,
+    String? reviewText,
+  }) async {
+    try {
+      final user = _supabaseClient.auth.currentUser;
+      if (user == null) {
+        throw Exception('User not authenticated');
+      }
+      
+      // Get booking details
+      final booking = await getBookingById(bookingId);
+      if (booking == null) {
+        throw Exception('Booking not found');
+      }
+      
+      // Check if booking is completed
+      if (booking.status != BookingStatus.completed) {
+        throw Exception('Can only review completed bookings');
+      }
+      
+      // Check if already reviewed
+      final existingReview = await _supabaseClient
+          .from('chef_ratings')
+          .select()
+          .eq('booking_id', bookingId)
+          .maybeSingle();
+          
+      if (existingReview != null) {
+        throw Exception('Booking already reviewed');
+      }
+      
+      // Insert review into chef_ratings
+      await _supabaseClient.from('chef_ratings').insert({
+        'chef_id': booking.chefId,
+        'user_id': user.id,
+        'booking_id': bookingId,
+        'rating': rating,
+        'review': reviewText,
+        'status': 'published',
+      });
+      
+      // Update booking with rating
+      await _supabaseClient.from('bookings').update({
+        'user_rating': rating,
+        'user_review': reviewText,
+      }).eq('id', bookingId);
+      
+      print('Review submitted successfully');
+    } catch (e) {
+      print('Error submitting review: $e');
+      rethrow;
+    }
+  }
+  
+  // Check if user has reviewed a booking
+  Future<bool> hasUserReviewed(String bookingId) async {
+    try {
+      final review = await _supabaseClient
+          .from('chef_ratings')
+          .select('id')
+          .eq('booking_id', bookingId)
+          .maybeSingle();
+          
+      return review != null;
+    } catch (e) {
+      print('Error checking review status: $e');
+      return false;
+    }
+  }
+  
+  // Get chef rating statistics
+  Future<Map<String, dynamic>> getChefRatingStats(String chefId) async {
+    try {
+      // Get all published ratings for the chef
+      final ratingsResponse = await _supabaseClient
+          .from('chef_ratings')
+          .select('rating')
+          .eq('chef_id', chefId)
+          .eq('status', 'published');
+      
+      if (ratingsResponse.isEmpty) {
+        return {
+          'averageRating': 0.0,
+          'totalReviews': 0,
+          'distribution': {1: 0, 2: 0, 3: 0, 4: 0, 5: 0},
+        };
+      }
+      
+      final ratings = (ratingsResponse as List<dynamic>)
+          .map((r) => r['rating'] as int)
+          .toList();
+      
+      // Calculate average
+      final averageRating = ratings.reduce((a, b) => a + b) / ratings.length;
+      
+      // Calculate distribution
+      final distribution = <int, int>{1: 0, 2: 0, 3: 0, 4: 0, 5: 0};
+      for (final rating in ratings) {
+        distribution[rating] = (distribution[rating] ?? 0) + 1;
+      }
+      
+      return {
+        'averageRating': averageRating,
+        'totalReviews': ratings.length,
+        'distribution': distribution,
+      };
+    } catch (e) {
+      print('Error getting chef rating stats: $e');
+      return {
+        'averageRating': 0.0,
+        'totalReviews': 0,
+        'distribution': {1: 0, 2: 0, 3: 0, 4: 0, 5: 0},
+      };
+    }
+  }
+
   // Helper methods to convert between enums and strings
   String _bookingStatusToString(BookingStatus status) {
     switch (status) {

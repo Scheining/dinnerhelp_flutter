@@ -14,11 +14,13 @@ import 'package:homechef/screens/notifications_screen.dart';
 import 'package:homechef/screens/profile_screen.dart';
 import 'package:homechef/screens/chef_profile_screen.dart';
 import 'package:homechef/screens/onboarding_screen.dart';
+import 'package:homechef/screens/booking_rating_screen.dart';
 
 // Profile screens
 import 'package:homechef/screens/profile/personal_information_screen.dart';
 import 'package:homechef/screens/profile/service_addresses_screen.dart';
 import 'package:homechef/screens/profile/notifications_settings_screen.dart';
+import 'package:homechef/screens/profile/biometric_settings_screen.dart';
 
 // Auth screens
 import 'package:homechef/screens/auth/sign_in_screen.dart';
@@ -41,6 +43,42 @@ import 'package:homechef/features/notifications/presentation/pages/notification_
 // Models
 import 'package:homechef/models/chef.dart';
 import 'package:homechef/features/booking/domain/entities/booking_request.dart';
+
+/// Shared key for shell route to prevent jarring transitions
+final _shellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'shell');
+
+/// Helper function to create custom page transitions for tab navigation
+CustomTransitionPage _buildTabTransitionPage({
+  required Widget child,
+  required GoRouterState state,
+}) {
+  // Get navigation direction from extra data
+  final extra = state.extra as Map<String, dynamic>?;
+  final isBackward = extra?['isBackward'] ?? false;
+  
+  return CustomTransitionPage(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 300), // Match ChefProfileScreen
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      // Use the exact same animation as ChefProfileScreen
+      final begin = isBackward 
+          ? const Offset(-1.0, 0.0)  // Slide from left for backward
+          : const Offset(1.0, 0.0);   // Slide from right for forward
+      const end = Offset.zero;
+      const curve = Curves.easeOutCubic;
+      
+      var tween = Tween(begin: begin, end: end).chain(
+        CurveTween(curve: curve),
+      );
+      
+      return SlideTransition(
+        position: animation.drive(tween),
+        child: child,
+      );
+    },
+  );
+}
 
 /// Router configuration provider
 final routerProvider = Provider<GoRouter>((ref) {
@@ -97,6 +135,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       // Main shell with bottom navigation
       ShellRoute(
+        navigatorKey: _shellNavigatorKey,
         builder: (context, state, child) {
           return MainNavigationScreen(child: child);
         },
@@ -105,14 +144,20 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/',
             name: 'home',
-            builder: (context, state) => const HomeScreen(),
+            pageBuilder: (context, state) => _buildTabTransitionPage(
+              child: const HomeScreen(),
+              state: state,
+            ),
           ),
           
           // Search tab
           GoRoute(
             path: '/search',
             name: 'search',
-            builder: (context, state) => const SearchScreen(),
+            pageBuilder: (context, state) => _buildTabTransitionPage(
+              child: const SearchScreen(),
+              state: state,
+            ),
             routes: [
               // Chef search results
               GoRoute(
@@ -137,7 +182,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/bookings',
             name: 'bookings',
-            builder: (context, state) => const BookingsScreen(),
+            pageBuilder: (context, state) => _buildTabTransitionPage(
+              child: const BookingsScreen(),
+              state: state,
+            ),
             routes: [
               // Booking management
               GoRoute(
@@ -167,14 +215,20 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/messages',
             name: 'messages',
-            builder: (context, state) => const NotificationsScreen(initialTabIndex: 1),
+            pageBuilder: (context, state) => _buildTabTransitionPage(
+              child: const NotificationsScreen(initialTabIndex: 1),
+              state: state,
+            ),
           ),
           
           // Profile tab
           GoRoute(
             path: '/profile',
             name: 'profile',
-            builder: (context, state) => const ProfileScreen(),
+            pageBuilder: (context, state) => _buildTabTransitionPage(
+              child: const ProfileScreen(),
+              state: state,
+            ),
             routes: [
               // Personal information
               GoRoute(
@@ -187,6 +241,12 @@ final routerProvider = Provider<GoRouter>((ref) {
                 path: 'service-addresses',
                 name: 'service-addresses',
                 builder: (context, state) => const ServiceAddressesScreen(),
+              ),
+              // Biometric settings
+              GoRoute(
+                path: 'biometric-settings',
+                name: 'biometric-settings',
+                builder: (context, state) => const BiometricSettingsScreen(),
               ),
               // Old route for compatibility
               GoRoute(
@@ -299,6 +359,19 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final bookingId = state.pathParameters['bookingId']!;
           return BookingConfirmationScreen(bookingId: bookingId);
+        },
+      ),
+      
+      // Booking rating/review
+      GoRoute(
+        path: '/booking/:bookingId/rate',
+        name: 'booking-rate',
+        pageBuilder: (context, state) {
+          final bookingId = state.pathParameters['bookingId']!;
+          return MaterialPage(
+            fullscreenDialog: true,
+            child: BookingRatingScreen(bookingId: bookingId),
+          );
         },
       ),
     ],

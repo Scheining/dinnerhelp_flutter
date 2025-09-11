@@ -246,16 +246,29 @@ class OneSignalService {
     if (additionalData != null) {
       final type = additionalData['type'] as String?;
       final id = additionalData['id'] as String?;
+      final bookingId = additionalData['booking_id'] as String?;
       
       switch (type) {
         case 'booking':
-          _navigateToBooking(id);
+          _navigateToBooking(id ?? bookingId);
+          break;
+        case 'rating_request':
+        case 'rate_booking':
+          _navigateToRateBooking(bookingId ?? id);
           break;
         case 'message':
+        case 'new_message':
           _navigateToMessages(id);
           break;
         case 'chef_profile':
           _navigateToChefProfile(id);
+          break;
+        case 'booking_confirmed':
+        case 'booking_cancelled':
+        case 'booking_updated':
+        case 'booking_reminder':
+        case 'chef_arrived':
+          _navigateToBooking(bookingId ?? id);
           break;
         default:
           _navigateToHome();
@@ -289,5 +302,11 @@ class OneSignalService {
     debugPrint('Navigate to home');
     // TODO: Implement navigation to home screen
     // Example: router.go('/');
+  }
+  
+  void _navigateToRateBooking(String? bookingId) {
+    debugPrint('Navigate to rate booking: $bookingId');
+    // TODO: Implement navigation to rating screen
+    // Example: router.go('/booking/$bookingId/rate');
   }
 }
